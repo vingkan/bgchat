@@ -104,6 +104,8 @@
   letter-spacing: 0.32em;
   text-transform: uppercase;
   color: var(--white-faint);
+  /* Hide this label, only needed for testing. */
+  display: none;
 }
 .video-label::before {
   content: '';
@@ -129,8 +131,8 @@
   right: 0;
   bottom: 0;
   z-index: 10;
-  padding: 90px clamp(28px, 6vw, 96px) clamp(24px, 4vh, 48px);
-  background: linear-gradient(to top, rgba(5, 5, 6, 0.92) 0%, rgba(5, 5, 6, 0.78) 45%, rgba(5, 5, 6, 0) 100%);
+  padding: 180px clamp(28px, 6vw, 96px) clamp(24px, 4vh, 48px);
+  background: linear-gradient(to top, rgba(5, 5, 6, 0.92) 0%, rgba(5, 5, 6, 0.80) 58%, rgba(5, 5, 6, 0) 100%);
 }
 #content {
   max-width: 900px;
@@ -217,13 +219,13 @@
 
 .tag {
   display: inline-block;
-  margin-left: 10px;
+  margin-right: 10px;
   font-size: 11px;
   letter-spacing: 0.12em;
   color: var(--accent);
   border: 1px solid rgba(201, 182, 138, 0.4);
   border-radius: 2px;
-  padding: 2px 9px;
+  padding: 4px 4px;
   vertical-align: middle;
   text-transform: uppercase;
   white-space: nowrap;
@@ -324,6 +326,11 @@
 .continue.visible {
   opacity: 1;
   pointer-events: auto;
+}
+/* The dice overlay centers everything in .roll-wrap; the shared .continue button
+   defaults to flex-start (for the end card / begin gate), so re-center it here. */
+.roll-wrap .continue {
+  align-self: center;
 }
 .continue:hover,
 .continue:focus-visible {
@@ -458,6 +465,8 @@
   align-items: center;
   justify-content: center;
   background: #000;
+  /* Match the decisions band's horizontal inset so text clears the edges on mobile. */
+  padding: 0 clamp(28px, 6vw, 96px);
 }
 .begin-inner {
   display: flex;
@@ -481,6 +490,40 @@
   max-width: 420px;
   line-height: 1.6;
 }
+.begin-key {
+  background: none;
+  border: 1px solid rgba(245, 245, 245, 0.3);
+  color: var(--white);
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 10px 16px;
+  border-radius: 2px;
+  width: 240px;
+  max-width: 100%;
+  transition: border-color 200ms ease;
+}
+.begin-key::placeholder {
+  color: var(--white-faint);
+  letter-spacing: 0.14em;
+}
+.begin-key:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.begin-error {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--fail);
+  margin-top: -8px;
+}
+/* The shared .continue button defaults to flex-start; center it under the input
+   on the begin screen (the .begin-inner column is centered). */
+.begin-inner .continue {
+  align-self: center;
+}
 
 @media (max-height: 620px) {
   .bar {
@@ -488,5 +531,16 @@
   }
   #lower {
     padding-top: 64px;
+  }
+}
+
+/* Mobile: stack the DC badge on its own line above the choice text. A block .tag
+   drops the inline .label to the next line, still within the option's body. */
+@media (max-width: 640px) {
+  .choice .tag {
+    display: block;
+    width: fit-content; /* own line, but still hug the badge text */
+    margin-right: 0;
+    margin-bottom: 6px;
   }
 }

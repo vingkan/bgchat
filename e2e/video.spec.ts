@@ -36,6 +36,6 @@ test('a missing clip falls back to the placeholder (no blank frame)', async ({ p
   await expect(page.getByText(/This clip does not exist/i)).toBeVisible();
   // No <video> element rendered — VideoStage shows the ambient placeholder instead.
   await expect(page.getByTestId('clip')).toHaveCount(0);
-  // The placeholder label is still there.
-  await expect(page.getByText('character video')).toBeVisible();
+  // The ambient placeholder container is shown (no blank/broken frame).
+  await expect(page.locator('#video')).toBeVisible();
 });

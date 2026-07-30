@@ -25,12 +25,12 @@ export function ChoiceButton({ choice, index, seen, onSelect }: Props) {
     >
       <span className="num">{index + 1}</span>
       <span className="body">
-        <span className="label">{choice.label}</span>
         {choice.kind === 'check' && (
           <span className="tag">
             [ {choice.skill} · DC {choice.dc} ]
           </span>
         )}
+        <span className="label">{choice.label}</span>
         {seen && <span className="seen">seen</span>}
       </span>
     </li>

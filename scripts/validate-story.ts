@@ -10,15 +10,14 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { StoryFile } from '../src/story/types';
-import { sampleStory } from '../src/story/sample';
+import { stories } from '../src/story/registry';
 import { referencedVideos, structuralErrors } from '../src/engine/validation';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(here, '..', 'public');
 
-// Register every story that ships. Add new stories here as they're authored.
-const stories: Record<string, StoryFile> = { sample: sampleStory };
+// Validate every story in the shared registry (keyed by its story key). Add new
+// stories in src/story/registry.ts and they're covered here automatically.
 
 const errors: string[] = [];
 

@@ -2,22 +2,34 @@ import { useEffect, useState } from 'react';
 import type { ComponentType } from 'react';
 import { DialoguePlayer } from './components/DialoguePlayer';
 import type { StoryFile } from './story/types';
-import { sampleStory } from './story/sample';
+import { DEFAULT_KEY, normalizeKey, stories } from './story/registry';
 import './App.css';
 
+// The valid story key in the URL (?key=KEY), or null if absent/unknown.
+function keyFromUrl(): string | null {
+  const raw = new URLSearchParams(window.location.search).get('key');
+  if (!raw) return null;
+  const k = normalizeKey(raw);
+  return k in stories ? k : null;
+}
+
 function App() {
-  const [story, setStory] = useState<StoryFile>(sampleStory);
+  // Story key drives which story plays. A valid ?key= in the URL selects it and
+  // skips the opening screen (started = true); otherwise we show the Begin gate
+  // on the default story.
+  const [storyKey, setStoryKey] = useState<string>(() => keyFromUrl() ?? DEFAULT_KEY);
+  const [started, setStarted] = useState<boolean>(() => keyFromUrl() !== null);
+  const [override, setOverride] = useState<StoryFile | null>(null); // dev e2e fixture
   const [Proto, setProto] = useState<ComponentType | null>(null);
 
-  // Dev-only: Playwright loads a video fixture via ?e2eVideo. The import.meta.env.DEV
-  // guard + dynamic import keep this out of the production bundle entirely.
+  // Dev-only surfaces. The import.meta.env.DEV guard + dynamic import keep these
+  // out of the production bundle entirely. (The ?key= routing above ships.)
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const params = new URLSearchParams(window.location.search);
     if (params.has('e2eVideo')) {
-      void import('./story/e2eFixture').then((m) => setStory(m.e2eVideoStory));
+      void import('./story/e2eFixture').then((m) => setOverride(m.e2eVideoStory));
     }
-    // Dev-only dice animation lab (?diceProto). Same dead-code guard as above.
     if (params.has('diceProto')) {
       void import('./proto/DiceLab').then((m) => setProto(() => m.DiceLab));
     }
@@ -25,10 +37,34 @@ function App() {
 
   if (Proto) return <Proto />;
 
-  // key by the story's entry node so swapping stories fully remounts the player
-  // (fresh engine state); without this, stale currentId would point at a node the
-  // new story doesn't have.
-  return <DialoguePlayer key={story.start} file={story} />;
+  const story = override ?? stories[storyKey] ?? stories[DEFAULT_KEY];
+
+  // Called by the Begin gate with the typed key. Empty => begin the current story.
+  // A valid key => write ?key= and switch. Unknown => false so the gate shows an
+  // error. Returns whether Begin should proceed.
+  const handleBeginKey = (typed: string): boolean => {
+    const k = normalizeKey(typed);
+    if (!k) return true; // no key: begin whatever's loaded (default story)
+    if (!(k in stories)) return false; // unknown key: gate surfaces the error
+    const url = new URL(window.location.href);
+    url.searchParams.set('key', k);
+    window.history.replaceState({}, '', url);
+    setStoryKey(k);
+    setStarted(true);
+    return true;
+  };
+
+  // Key by story key (not story.start) so switching stories remounts the player
+  // and resets engine state — TEST and LOVE both start at node "gate", so keying
+  // by start would fail to reset between them.
+  return (
+    <DialoguePlayer
+      key={override ? 'e2e' : storyKey}
+      file={story}
+      initialStarted={started}
+      onBeginKey={handleBeginKey}
+    />
+  );
 }
 
 export default App;

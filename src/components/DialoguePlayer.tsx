@@ -23,9 +23,22 @@ function nextVideos(file: StoryFile, choices: Choice[]): string[] {
   return paths;
 }
 
-export function DialoguePlayer({ file, seed }: { file: StoryFile; seed?: number }) {
+export function DialoguePlayer({
+  file,
+  seed,
+  initialStarted = false,
+  onBeginKey,
+}: {
+  file: StoryFile;
+  seed?: number;
+  // true => skip the Begin gate (arrived via a valid ?key= URL).
+  initialStarted?: boolean;
+  // Begin gate reports the typed key; returns false for an unknown key so the
+  // gate can show an error. When absent (e.g. unit tests), Begin always proceeds.
+  onBeginKey?: (key: string) => boolean;
+}) {
   const { state, node, chooseSimple, resolveCheck, cont, back, restart } = useGame(file, seed);
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(initialStarted);
   const [muted, setMuted] = useState(true);
 
   const { pending } = state;
@@ -59,7 +72,7 @@ export function DialoguePlayer({ file, seed }: { file: StoryFile; seed?: number 
 
   return (
     <div id="stage">
-      <div className="bar top" />
+      {/* <div className="bar top" /> */}
       <div id="frame" className={pending ? 'dimmed' : ''}>
         <VideoStage src={node.video} started={started} muted={muted} />
         <div id="lower">
@@ -117,10 +130,21 @@ export function DialoguePlayer({ file, seed }: { file: StoryFile; seed?: number 
           </motion.div>
         </div>
       </div>
-      <div className="bar bottom" />
+      {/* <div className="bar bottom" /> */}
 
       <DiceRoll roll={pending?.roll ?? null} onContinue={cont} />
-      {!started && <BeginGate onBegin={() => setStarted(true)} />}
+      {!started && (
+        <BeginGate
+          onBegin={(key) => {
+            // A valid key switch is handled by App (which remounts this player
+            // already-started); the local setStarted covers the no-switch cases
+            // (empty key, same key, or no onBeginKey in tests).
+            const ok = onBeginKey ? onBeginKey(key) : true;
+            if (ok) setStarted(true);
+            return ok;
+          }}
+        />
+      )}
     </div>
   );
 }
