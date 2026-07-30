@@ -1,0 +1,731 @@
+/* Story editor (?editor). Self-contained dark theme — does not depend on App.css. */
+
+.ed-root {
+  --ed-bg: #0a0a0c;
+  --ed-panel: #15151a;
+  --ed-panel-2: #1d1d24;
+  --ed-line: rgba(245, 245, 245, 0.12);
+  --ed-line-strong: rgba(245, 245, 245, 0.22);
+  --ed-white: #f2f2f2;
+  --ed-dim: rgba(242, 242, 242, 0.55);
+  --ed-faint: rgba(242, 242, 242, 0.3);
+  --ed-accent: #c9b68a;
+  --ed-pass: #7fa87f;
+  --ed-fail: #b06a63;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--ed-bg);
+  color: var(--ed-white);
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.ed-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--ed-panel);
+  border-bottom: 1px solid var(--ed-line);
+  z-index: 5;
+}
+.ed-brand {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ed-dim);
+  margin-right: 6px;
+}
+.ed-spacer {
+  flex: 1;
+}
+.ed-toolbar button {
+  background: var(--ed-panel-2);
+  color: var(--ed-white);
+  border: 1px solid var(--ed-line);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  transition: border-color 0.12s, background 0.12s;
+}
+.ed-toolbar button:hover {
+  border-color: var(--ed-line-strong);
+}
+.ed-toolbar button.on {
+  border-color: var(--ed-accent);
+  color: var(--ed-accent);
+}
+.ed-save {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ed-faint);
+}
+.ed-save.saving {
+  color: var(--ed-accent);
+}
+.ed-save.saved {
+  color: var(--ed-pass);
+}
+
+.ed-restored {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: rgba(201, 182, 138, 0.1);
+  border-bottom: 1px solid var(--ed-line);
+  font-size: 12px;
+  color: var(--ed-accent);
+  z-index: 5;
+}
+.ed-restored button {
+  background: transparent;
+  border: 1px solid var(--ed-line-strong);
+  color: var(--ed-white);
+  border-radius: 5px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+/* ── Canvas ──────────────────────────────────────────────────────────────── */
+.ed-canvas {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  cursor: grab;
+  background-color: var(--ed-bg);
+  background-image: radial-gradient(rgba(245, 245, 245, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  touch-action: none;
+}
+.ed-canvas:active {
+  cursor: grabbing;
+}
+.ed-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  width: 0;
+  height: 0;
+}
+.ed-edges {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+}
+.ed-edge {
+  fill: none;
+  stroke: var(--ed-line-strong);
+  stroke-width: 1.5;
+}
+.ed-edge.success {
+  stroke: var(--ed-pass);
+}
+.ed-edge.failure {
+  stroke: var(--ed-fail);
+}
+.ed-edge.live {
+  stroke-dasharray: 5 4;
+  stroke: var(--ed-accent);
+}
+
+.ed-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--ed-faint);
+  text-align: center;
+  pointer-events: none;
+}
+.ed-empty p:first-child {
+  font-size: 16px;
+  color: var(--ed-dim);
+}
+
+/* ── Node card ───────────────────────────────────────────────────────────── */
+.ed-node {
+  position: absolute;
+  width: 340px;
+  background: var(--ed-panel);
+  border: 1px solid var(--ed-line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  user-select: none;
+}
+.ed-node.selected {
+  border-color: var(--ed-accent);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--ed-accent);
+  z-index: 3;
+}
+.ed-node.start {
+  border-left: 3px solid var(--ed-accent);
+}
+.ed-node-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--ed-line);
+  cursor: grab;
+}
+.ed-grip {
+  color: var(--ed-faint);
+  cursor: grab;
+}
+/* ID is the card title, in the head. */
+.ed-id-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.ed-id-hash {
+  color: var(--ed-faint);
+  font-family: ui-monospace, monospace;
+}
+.ed-id-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--ed-panel-2);
+  border: 1px solid var(--ed-line);
+  color: var(--ed-white);
+  border-radius: 5px;
+  padding: 4px 7px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+}
+.ed-id-input:focus {
+  outline: none;
+  border-color: var(--ed-accent);
+}
+.ed-id-input.invalid {
+  border-color: var(--ed-fail);
+}
+.ed-id-title {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, monospace;
+  font-weight: 600;
+  color: var(--ed-white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ed-node-icons {
+  display: flex;
+  gap: 4px;
+}
+.ed-icon {
+  background: transparent;
+  border: 1px solid var(--ed-line);
+  color: var(--ed-dim);
+  border-radius: 5px;
+  padding: 2px 7px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.ed-icon:hover {
+  color: var(--ed-white);
+  border-color: var(--ed-line-strong);
+}
+.ed-icon.ed-danger:hover {
+  color: var(--ed-fail);
+  border-color: var(--ed-fail);
+}
+/* Speaker: an input in the body (edit) or a muted line in the meta row (read). */
+.ed-speaker {
+  background: var(--ed-panel-2);
+  border: 1px solid var(--ed-line);
+  color: var(--ed-white);
+  border-radius: 5px;
+  padding: 5px 7px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.ed-speaker-ro {
+  font-weight: 600;
+  color: var(--ed-white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ed-start-badge {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--ed-accent);
+  border: 1px solid var(--ed-accent);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+
+.ed-node-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 0;
+}
+.ed-thumb {
+  width: 52px;
+  height: 30px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #000;
+  border: 1px solid var(--ed-line);
+}
+.ed-novid {
+  font-size: 10px;
+  color: var(--ed-faint);
+  font-style: italic;
+}
+.ed-id-ro {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--ed-faint);
+  font-family: ui-monospace, monospace;
+}
+.ed-text-ro {
+  padding: 6px 10px 8px;
+  color: var(--ed-dim);
+  font-size: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ed-dim {
+  color: var(--ed-faint);
+  font-style: italic;
+}
+
+.ed-choices {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 6px;
+}
+.ed-choice-ro {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-top: 1px solid var(--ed-line);
+}
+.ed-choice-label {
+  flex: 1;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ed-dc-badge {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--ed-accent);
+  border: 1px solid rgba(201, 182, 138, 0.5);
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-right: 5px;
+}
+.ed-ending {
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--ed-faint);
+  border-top: 1px solid var(--ed-line);
+}
+
+/* ── Handles ─────────────────────────────────────────────────────────────── */
+.ed-handles {
+  display: inline-flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.ed-handle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--ed-panel-2);
+  border: 1px solid var(--ed-line-strong);
+  border-radius: 10px;
+  padding: 1px 4px 1px 6px;
+  cursor: crosshair;
+  color: var(--ed-dim);
+  font-size: 9px;
+}
+.ed-handle:hover {
+  border-color: var(--ed-accent);
+  color: var(--ed-accent);
+}
+.ed-handle.success.wired {
+  color: var(--ed-pass);
+  border-color: var(--ed-pass);
+}
+.ed-handle.failure.wired {
+  color: var(--ed-fail);
+  border-color: var(--ed-fail);
+}
+.ed-handle.next.wired {
+  color: var(--ed-accent);
+  border-color: var(--ed-accent);
+}
+.ed-handle-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* ── Editable body ───────────────────────────────────────────────────────── */
+.ed-edit {
+  padding: 8px 10px 10px;
+  cursor: default;
+}
+.ed-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.ed-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  margin-bottom: 8px;
+}
+.ed-field > span {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ed-faint);
+}
+.ed-err {
+  color: var(--ed-fail);
+  font-style: normal;
+  margin-left: 4px;
+}
+.ed-edit input,
+.ed-edit select,
+.ed-edit textarea {
+  background: var(--ed-panel-2);
+  border: 1px solid var(--ed-line);
+  color: var(--ed-white);
+  border-radius: 5px;
+  padding: 5px 7px;
+  font-size: 12px;
+  width: 100%;
+  font-family: inherit;
+}
+.ed-edit input:focus,
+.ed-edit select:focus,
+.ed-edit textarea:focus {
+  outline: none;
+  border-color: var(--ed-accent);
+}
+.ed-id-input {
+  font-family: ui-monospace, monospace;
+}
+.ed-id-input.invalid {
+  border-color: var(--ed-fail);
+}
+.ed-textarea {
+  resize: vertical;
+  min-height: 46px;
+}
+
+.ed-choices-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ed-choice-edit {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--ed-panel-2);
+  border: 1px solid var(--ed-line);
+  border-radius: 7px;
+  padding: 6px 7px;
+}
+.ed-choice-input {
+  flex: 1;
+  min-width: 0;
+}
+.ed-dc-anchor {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+}
+.ed-dc-badge-btn {
+  background: transparent;
+  border: 1px dashed var(--ed-line-strong);
+  color: var(--ed-dim);
+  border-radius: 5px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.ed-dc-badge-btn:hover {
+  border-color: var(--ed-accent);
+  color: var(--ed-accent);
+}
+.ed-dc-badge-btn.on {
+  border-style: solid;
+  border-color: rgba(201, 182, 138, 0.5);
+  color: var(--ed-accent);
+}
+.ed-choice-del {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--ed-line);
+  color: var(--ed-faint);
+  border-radius: 5px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.ed-choice-del:hover {
+  color: var(--ed-fail);
+  border-color: var(--ed-fail);
+}
+.ed-dc-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 15;
+  width: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--ed-panel);
+  border: 1px solid var(--ed-line-strong);
+  border-radius: 8px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.65);
+  padding: 10px;
+}
+.ed-dc-popover .ed-field {
+  margin-bottom: 0;
+}
+.ed-dc-remove {
+  background: transparent;
+  border: 1px solid var(--ed-line);
+  color: var(--ed-dim);
+  border-radius: 5px;
+  padding: 6px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.ed-dc-remove:hover {
+  color: var(--ed-fail);
+  border-color: var(--ed-fail);
+}
+.ed-choice-add {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ed-choice-add button {
+  flex: 1;
+  background: transparent;
+  border: 1px dashed var(--ed-line-strong);
+  color: var(--ed-dim);
+  border-radius: 5px;
+  padding: 5px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.ed-choice-add button:hover {
+  color: var(--ed-accent);
+  border-color: var(--ed-accent);
+}
+
+/* ── Ability panel ───────────────────────────────────────────────────────── */
+.ed-abilities {
+  position: absolute;
+  top: 60px;
+  right: 16px;
+  width: 320px;
+  background: var(--ed-panel);
+  border: 1px solid var(--ed-line-strong);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  z-index: 10;
+}
+.ed-abilities-head,
+.ed-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--ed-line);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.ed-x {
+  background: transparent;
+  border: none;
+  color: var(--ed-dim);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+}
+.ed-x:hover {
+  color: var(--ed-white);
+}
+.ed-abilities-body {
+  padding: 8px 14px 14px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.ed-ability-group {
+  margin-bottom: 8px;
+}
+.ed-ability-group-name {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ed-accent);
+  padding: 8px 0 4px;
+  border-bottom: 1px solid var(--ed-line);
+  margin-bottom: 4px;
+}
+.ed-skill-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.ed-skill-name {
+  width: 108px;
+  flex-shrink: 0;
+}
+.ed-mod-chip {
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  min-width: 26px;
+  text-align: center;
+}
+.ed-mod-chip.pos {
+  color: var(--ed-pass);
+}
+.ed-mod-chip.neg {
+  color: var(--ed-fail);
+}
+.ed-skill-row select {
+  flex: 1;
+  min-width: 0;
+  background: var(--ed-panel-2);
+  border: 1px solid var(--ed-line);
+  color: var(--ed-white);
+  border-radius: 5px;
+  padding: 4px 6px;
+  font-size: 11px;
+}
+.ed-mod-scores {
+  font-size: 9px;
+  color: var(--ed-faint);
+  white-space: nowrap;
+}
+
+/* ── Modals ──────────────────────────────────────────────────────────────── */
+.ed-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+.ed-modal {
+  width: min(680px, 92vw);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ed-panel);
+  border: 1px solid var(--ed-line-strong);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+}
+.ed-modal-sub {
+  padding: 12px 16px 0;
+  color: var(--ed-dim);
+  font-size: 12px;
+}
+.ed-modal-sub code {
+  font-family: ui-monospace, monospace;
+  color: var(--ed-accent);
+}
+.ed-copied {
+  color: var(--ed-pass);
+}
+.ed-copyfail {
+  color: var(--ed-fail);
+}
+.ed-json {
+  margin: 12px 16px;
+  flex: 1;
+  min-height: 320px;
+  background: var(--ed-bg);
+  border: 1px solid var(--ed-line);
+  border-radius: 8px;
+  color: var(--ed-white);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  padding: 12px;
+  resize: none;
+}
+.ed-json:focus {
+  outline: none;
+  border-color: var(--ed-accent);
+}
+.ed-modal-err {
+  color: var(--ed-fail);
+  padding: 0 16px;
+  font-size: 12px;
+}
+.ed-modal-warn {
+  color: var(--ed-accent);
+  padding: 0 16px;
+  font-size: 12px;
+}
+.ed-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+.ed-modal-actions button {
+  background: var(--ed-panel-2);
+  border: 1px solid var(--ed-line);
+  color: var(--ed-white);
+  border-radius: 6px;
+  padding: 7px 16px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.ed-modal-actions button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.ed-modal-actions .primary {
+  border-color: var(--ed-accent);
+  color: var(--ed-accent);
+}

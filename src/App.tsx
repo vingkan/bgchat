@@ -22,11 +22,16 @@ function App() {
   const [override, setOverride] = useState<StoryFile | null>(null); // dev e2e fixture
   const [Proto, setProto] = useState<ComponentType | null>(null);
 
-  // Dev-only surfaces. The import.meta.env.DEV guard + dynamic import keep these
-  // out of the production bundle entirely. (The ?key= routing above ships.)
+  // Full-screen surfaces mounted via the Proto slot. The story editor ships
+  // (usable in any build); the e2e/dice surfaces stay dev-only behind the guard.
+  // All are dynamically imported so they're code-split out of the core path.
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
     const params = new URLSearchParams(window.location.search);
+    if (params.has('editor')) {
+      void import('./editor/EditorPage').then((m) => setProto(() => m.EditorPage));
+      return;
+    }
+    if (!import.meta.env.DEV) return;
     if (params.has('e2eVideo')) {
       void import('./story/e2eFixture').then((m) => setOverride(m.e2eVideoStory));
     }
