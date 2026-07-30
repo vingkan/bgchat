@@ -1,0 +1,492 @@
+/* bgchat — "Cinematic Letterbox" dialogue player.
+   Ported from the approved design prototype (variant-B). Film-restrained:
+   full-bleed frame between letterbox bars, thin typography, one gold accent. */
+
+:root {
+  --white: #f5f5f5;
+  --white-dim: rgba(245, 245, 245, 0.55);
+  --white-faint: rgba(245, 245, 245, 0.28);
+  --accent: #c9b68a;
+  --fail: #b06a63;
+  --bar: #000;
+  --sans: system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+#stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  color: var(--white);
+  font-family: var(--sans);
+}
+
+/* Letterbox bars */
+.bar {
+  flex: 0 0 6.5vh;
+  background: var(--bar);
+  z-index: 30;
+}
+
+/* Film frame */
+#frame {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: hidden;
+  background: #050506;
+  transition: filter 320ms ease;
+}
+#frame.dimmed {
+  filter: brightness(0.5) blur(1px);
+}
+
+/* Video / placeholder container */
+#video {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 30% 20%, #1c2026 0%, #0d1013 45%, #050608 100%);
+}
+#video .clip {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#video::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(40% 55% at 35% 40%, rgba(201, 182, 138, 0.1) 0%, rgba(201, 182, 138, 0) 60%),
+    radial-gradient(50% 50% at 70% 65%, rgba(120, 150, 180, 0.1) 0%, rgba(120, 150, 180, 0) 55%);
+  filter: blur(8px);
+  animation: drift 22s ease-in-out infinite alternate;
+}
+#video::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(245, 245, 245, 0.045) 50%, transparent 70%);
+  background-size: 260% 260%;
+  animation: shimmer 14s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+@keyframes drift {
+  0% { transform: translate(-3%, -2%) scale(1.05); }
+  50% { transform: translate(2%, 3%) scale(1.12); }
+  100% { transform: translate(4%, -3%) scale(1.06); }
+}
+@keyframes shimmer {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+#frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(130% 130% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+  z-index: 5;
+}
+
+.video-label {
+  position: absolute;
+  left: 22px;
+  top: 18px;
+  z-index: 8;
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--white-faint);
+}
+.video-label::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-right: 8px;
+  vertical-align: middle;
+  opacity: 0.7;
+  animation: pulse 3.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.8; }
+}
+
+/* Lower-third UI band */
+#lower {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  padding: 90px clamp(28px, 6vw, 96px) clamp(24px, 4vh, 48px);
+  background: linear-gradient(to top, rgba(5, 5, 6, 0.92) 0%, rgba(5, 5, 6, 0.78) 45%, rgba(5, 5, 6, 0) 100%);
+}
+#content {
+  max-width: 900px;
+}
+
+.speaker {
+  font-size: 12px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 500;
+  margin-bottom: 14px;
+  font-variant-caps: small-caps;
+}
+.dialogue {
+  font-size: clamp(20px, 2.5vw, 30px);
+  font-weight: 200;
+  line-height: 1.5;
+  color: var(--white);
+  max-width: 760px;
+  margin-bottom: 26px;
+  letter-spacing: 0.005em;
+}
+
+/* Choices */
+.choices {
+  list-style: none;
+}
+.choice {
+  position: relative;
+  padding: 15px 2px 15px 0;
+  border-top: 1px solid var(--white-faint);
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  color: var(--white-dim);
+  transition: color 200ms ease;
+}
+.choice:last-child {
+  border-bottom: 1px solid var(--white-faint);
+}
+.choice .num {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--white-faint);
+  min-width: 16px;
+  transition: color 200ms ease;
+  font-variant-numeric: tabular-nums;
+}
+.choice .body {
+  flex: 1 1 auto;
+}
+.choice .label {
+  font-size: clamp(14px, 1.35vw, 16px);
+  font-weight: 300;
+  line-height: 1.45;
+  position: relative;
+  display: inline;
+}
+.choice .label::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  height: 1px;
+  width: 0;
+  background: var(--accent);
+  transition: width 260ms ease;
+}
+.choice:hover,
+.choice:focus-visible {
+  color: var(--white);
+  outline: none;
+}
+.choice:hover .num,
+.choice:focus-visible .num {
+  color: var(--accent);
+}
+.choice:hover .label::after,
+.choice:focus-visible .label::after {
+  width: 100%;
+}
+
+.tag {
+  display: inline-block;
+  margin-left: 10px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  border: 1px solid rgba(201, 182, 138, 0.4);
+  border-radius: 2px;
+  padding: 2px 9px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: border-color 200ms ease;
+}
+.choice:hover .tag {
+  border-color: rgba(201, 182, 138, 0.75);
+}
+
+.seen {
+  display: inline-block;
+  margin-left: 10px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--white-faint);
+  vertical-align: middle;
+}
+.seen::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border: 1px solid var(--white-faint);
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Controls */
+#controls {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-top: 22px;
+  height: 20px;
+}
+.ctrl {
+  background: none;
+  border: none;
+  color: var(--white-dim);
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 180ms ease;
+}
+.ctrl:hover:not(:disabled),
+.ctrl:focus-visible {
+  color: var(--accent);
+  outline: none;
+}
+.ctrl:disabled {
+  color: rgba(245, 245, 245, 0.15);
+  cursor: default;
+}
+
+/* End card */
+.endcard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+.end-rule {
+  width: 46px;
+  height: 1px;
+  background: var(--accent);
+}
+.end-title {
+  font-size: clamp(26px, 3vw, 40px);
+  font-weight: 200;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--white);
+  font-variant-caps: small-caps;
+}
+
+/* Shared button (Continue / Begin / Restart) */
+.continue {
+  background: none;
+  border: 1px solid rgba(245, 245, 245, 0.3);
+  color: var(--white);
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  padding: 11px 30px;
+  border-radius: 2px;
+  cursor: pointer;
+  align-self: flex-start;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms ease, border-color 200ms ease, color 200ms ease;
+}
+.continue.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.continue:hover,
+.continue:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
+
+/* Dice overlay */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 3, 4, 0.72);
+  backdrop-filter: blur(3px);
+}
+.roll-wrap {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+}
+.roll-check {
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.die {
+  width: 128px;
+  height: 128px;
+  position: relative;
+}
+.die svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.die .poly {
+  fill: none;
+  stroke: rgba(245, 245, 245, 0.75);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.die .val {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  font-weight: 200;
+  color: var(--white);
+  font-variant-numeric: tabular-nums;
+}
+.roll-math {
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--white-dim);
+  letter-spacing: 0.08em;
+  min-height: 22px;
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+.roll-math.visible {
+  opacity: 1;
+}
+.roll-result {
+  font-size: 24px;
+  font-weight: 300;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-variant-caps: small-caps;
+  min-height: 30px;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+.roll-result.visible {
+  opacity: 1;
+}
+.roll-result.success {
+  color: var(--accent);
+}
+.roll-result.failure {
+  color: var(--fail);
+}
+
+/* Fixed-size stage so the impact ripple can center on the die independent of
+   the die's own scale/shake/rotate transforms. */
+.die-stage {
+  position: relative;
+  width: 128px;
+  height: 128px;
+}
+/* Gold impact ripple — a ring that expands and fades when the die lands. */
+.roll-flash {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  opacity: 0;
+  transform: scale(0.5);
+  pointer-events: none;
+}
+.roll-flash.on {
+  animation: roll-ring 620ms ease-out;
+}
+@keyframes roll-ring {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+
+/* Begin gate */
+.begin-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+.begin-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  text-align: center;
+}
+.begin-title {
+  font-size: clamp(34px, 5vw, 60px);
+  font-weight: 200;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--white);
+  font-variant-caps: small-caps;
+}
+.begin-sub {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: var(--white-dim);
+  max-width: 420px;
+  line-height: 1.6;
+}
+
+@media (max-height: 620px) {
+  .bar {
+    flex-basis: 4vh;
+  }
+  #lower {
+    padding-top: 64px;
+  }
+}

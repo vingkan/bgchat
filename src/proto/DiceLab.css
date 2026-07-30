@@ -1,0 +1,159 @@
+/* DEV-ONLY dice lab styling. Leans on the shared :root vars + .die/.roll-* from
+   App.css so the prototypes read in the real Letterbox language. */
+
+.dice-lab {
+  min-height: 100vh;
+  background: radial-gradient(120% 90% at 30% 20%, #1c2026 0%, #0d1013 45%, #050608 100%);
+  color: var(--white);
+  font-family: var(--sans);
+  padding: 40px 32px 72px;
+}
+
+.lab-title {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.lab-title h1 {
+  font-size: 22px;
+  font-weight: 200;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+.lab-title p {
+  font-size: 12px;
+  color: var(--white-dim);
+  letter-spacing: 0.14em;
+  margin: 0 0 20px;
+}
+
+.lab-rollall,
+.lab-roll {
+  background: transparent;
+  border: 1px solid var(--white-faint);
+  color: var(--white);
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  padding: 10px 22px;
+  cursor: pointer;
+  transition:
+    border-color 200ms ease,
+    color 200ms ease;
+}
+.lab-rollall:hover,
+.lab-roll:hover,
+.lab-roll:focus-visible,
+.lab-rollall:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.lab-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+  gap: 28px;
+  max-width: 940px;
+  margin: 0 auto;
+}
+
+.lab-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 24px 26px;
+  border: 1px solid rgba(245, 245, 245, 0.08);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.lab-head {
+  text-align: center;
+}
+.lab-name {
+  display: block;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  color: var(--white);
+}
+.lab-blurb {
+  display: block;
+  font-size: 11px;
+  color: var(--white-faint);
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+}
+
+/* The stage each die animates within. Fixed box so overshoot/shake has room. */
+.lab-stage {
+  position: relative;
+  width: 100%;
+  height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+.lab-stage.persp {
+  perspective: 700px;
+}
+
+/* Contact shadow for B — a soft ellipse that snaps tight on landing. */
+.lab-shadow {
+  position: absolute;
+  bottom: 26px;
+  width: 90px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+  transform: scale(1.5);
+  opacity: 0.25;
+  transition:
+    transform 300ms ease,
+    opacity 300ms ease;
+}
+.lab-shadow.landed {
+  transform: scale(1);
+  opacity: 0.6;
+}
+
+/* Gold ring flash for C — expands and fades on the result reveal. */
+.lab-flash {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  opacity: 0;
+  transform: scale(0.5);
+  pointer-events: none;
+}
+.lab-flash.on {
+  animation: lab-ring 620ms ease-out;
+}
+@keyframes lab-ring {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+
+/* Keep the readout height stable so cells don't jump between rolls. */
+.lab-cell .roll-math {
+  min-height: 20px;
+}
+.lab-cell .roll-result {
+  min-height: 28px;
+  font-size: 20px;
+}
+
+@media (max-width: 720px) {
+  .lab-grid {
+    grid-template-columns: 1fr;
+  }
+}
