@@ -5,6 +5,6 @@ import react from '@vitejs/plugin-react'
 // project subpath (e.g. /bgchat/) without hardcoding the repo name.
 // https://vite.dev/config/
 export default defineConfig({
-  base: './',
+  base: '/bgchat',
   plugins: [react()],
 })

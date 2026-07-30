@@ -35,7 +35,7 @@ export function VideoStage({ src, started, muted }: Props) {
           ref={ref}
           className="clip"
           data-testid="clip"
-          src={src}
+          src={`/bgchat${src}`}
           muted={muted}
           loop
           playsInline
