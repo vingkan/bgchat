@@ -155,6 +155,7 @@ export type Action =
   | { type: 'patchNode'; id: NodeId; patch: Partial<Pick<DialogueNode, 'speaker' | 'text' | 'video'>> }
   | { type: 'addChoice'; id: NodeId }
   | { type: 'removeChoice'; id: NodeId; index: number }
+  | { type: 'moveChoice'; id: NodeId; from: number; to: number }
   | { type: 'patchChoice'; id: NodeId; index: number; patch: Partial<Choice> }
   | { type: 'setCheck'; id: NodeId; index: number; on: boolean }
   | { type: 'connect'; id: NodeId; index: number; handle: Handle; target: NodeId }
@@ -285,6 +286,19 @@ export function reducer(state: EditorState, action: EditorState | Action): Edito
           [a.id]: { ...n, choices: n.choices.filter((_, i) => i !== a.index) },
         },
       };
+    }
+
+    case 'moveChoice': {
+      const n = state.nodes[a.id];
+      if (!n) return state;
+      const { from, to } = a;
+      if (from === to || from < 0 || to < 0 || from >= n.choices.length || to >= n.choices.length) {
+        return state;
+      }
+      const choices = [...n.choices];
+      const [moved] = choices.splice(from, 1);
+      choices.splice(to, 0, moved);
+      return { ...state, nodes: { ...state.nodes, [a.id]: { ...n, choices } } };
     }
 
     case 'patchChoice': {

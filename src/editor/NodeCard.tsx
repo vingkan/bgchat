@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Choice } from '../story/types';
 import {
   DC_TIERS,
@@ -118,6 +118,8 @@ function ReadBody({
 
 function EditBody({ node, dispatch }: { node: EditorNode; dispatch: (a: Action) => void }) {
   const stop = (e: React.PointerEvent) => e.stopPropagation();
+  // Index of the choice currently being dragged for reordering (null = none).
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   return (
     <div className="ed-edit" onPointerDown={stop}>
       <div className="ed-row">
@@ -161,7 +163,15 @@ function EditBody({ node, dispatch }: { node: EditorNode; dispatch: (a: Action) 
 
       <div className="ed-choices-edit">
         {node.choices.map((c, i) => (
-          <ChoiceEditor key={i} node={node} index={i} choice={c} dispatch={dispatch} />
+          <ChoiceEditor
+            key={i}
+            node={node}
+            index={i}
+            choice={c}
+            dispatch={dispatch}
+            dragIndex={dragIndex}
+            setDragIndex={setDragIndex}
+          />
         ))}
       </div>
 
@@ -213,13 +223,19 @@ function ChoiceEditor({
   index,
   choice,
   dispatch,
+  dragIndex,
+  setDragIndex,
 }: {
   node: EditorNode;
   index: number;
   choice: Choice;
   dispatch: (a: Action) => void;
+  dragIndex: number | null;
+  setDragIndex: (i: number | null) => void;
 }) {
   const [popover, setPopover] = useState(false);
+  // 'above' | 'below' shows where the dragged row would land relative to this one.
+  const [dropEdge, setDropEdge] = useState<'above' | 'below' | null>(null);
   const isCheck = choice.kind === 'check';
 
   const openDc = () => {
@@ -227,13 +243,54 @@ function ChoiceEditor({
     setPopover(true);
   };
 
+  const onDragOver = (e: React.DragEvent) => {
+    if (dragIndex === null || dragIndex === index) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const r = e.currentTarget.getBoundingClientRect();
+    setDropEdge(e.clientY < r.top + r.height / 2 ? 'above' : 'below');
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDropEdge(null);
+    if (dragIndex === null || dragIndex === index) return;
+    // Insert before this row for 'above', after it for 'below', accounting for the
+    // removal of the dragged item shifting later indices down by one.
+    const edge = e.clientY < e.currentTarget.getBoundingClientRect().top + e.currentTarget.getBoundingClientRect().height / 2 ? 'above' : 'below';
+    let to = edge === 'above' ? index : index + 1;
+    if (dragIndex < to) to -= 1;
+    dispatch({ type: 'moveChoice', id: node.id, from: dragIndex, to });
+    setDragIndex(null);
+  };
+
   return (
-    <div className="ed-choice-edit">
-      <input
-        className="ed-choice-input"
+    <div
+      className={`ed-choice-edit${dragIndex === index ? ' dragging' : ''}${dropEdge ? ` drop-${dropEdge}` : ''}`}
+      onDragOver={onDragOver}
+      onDragLeave={() => setDropEdge(null)}
+      onDrop={onDrop}
+    >
+      <span
+        className="ed-choice-grip"
+        title="Drag to reorder"
+        aria-hidden
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', String(index));
+          setDragIndex(index);
+        }}
+        onDragEnd={() => {
+          setDragIndex(null);
+          setDropEdge(null);
+        }}
+      >
+        ⠿
+      </span>
+      <ChoiceLabelInput
         value={choice.label}
-        placeholder="Choice text…"
-        onChange={(e) => dispatch({ type: 'patchChoice', id: node.id, index, patch: { label: e.target.value } })}
+        onChange={(label) => dispatch({ type: 'patchChoice', id: node.id, index, patch: { label } })}
       />
       <span className="ed-dc-anchor">
         <button
@@ -265,6 +322,28 @@ function ChoiceEditor({
         ×
       </button>
     </div>
+  );
+}
+
+// A single-line-looking textarea that grows to fit wrapped choice text (so long
+// labels wrap instead of scrolling out of view). Height tracks content on change.
+function ChoiceLabelInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      className="ed-choice-input"
+      value={value}
+      rows={1}
+      placeholder="Choice text…"
+      onChange={(e) => onChange(e.target.value)}
+    />
   );
 }
 

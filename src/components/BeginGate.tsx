@@ -54,6 +54,9 @@ export function BeginGate({ onBegin }: Props) {
           Begin
         </button>
       </div>
+      <a className="editor-link" href="?editor">
+        Story editor ✎
+      </a>
     </div>
   );
 }

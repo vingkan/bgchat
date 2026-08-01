@@ -544,3 +544,23 @@
     margin-bottom: 6px;
   }
 }
+
+/* Discreet link to the story editor, shown only on the landing (Begin) screen. */
+.editor-link {
+  position: fixed;
+  right: 16px;
+  bottom: 14px;
+  z-index: 30;
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--white-faint);
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+.editor-link:hover {
+  color: var(--accent);
+  background: rgba(245, 245, 245, 0.05);
+}

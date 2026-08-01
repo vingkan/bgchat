@@ -194,18 +194,55 @@ export function EditorPage() {
     }
   };
 
-  const onWheel = (e: React.WheelEvent) => {
+  // Zoom around a canvas-local point (sx, sy), keeping that world point fixed.
+  // Defaults to the canvas center — used by the +/- keys and the on-canvas buttons.
+  const zoomBy = useCallback((factor: number, sx?: number, sy?: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
-    const newScale = Math.min(2.5, Math.max(0.25, vp.scale * factor));
-    const sx = e.clientX - rect.left;
-    const sy = e.clientY - rect.top;
-    // Keep the world point under the cursor fixed while zooming.
-    const wx = (sx - vp.x) / vp.scale;
-    const wy = (sy - vp.y) / vp.scale;
-    setVp({ scale: newScale, x: sx - wx * newScale, y: sy - wy * newScale });
-  };
+    const px = sx ?? rect.width / 2;
+    const py = sy ?? rect.height / 2;
+    setVp((v) => {
+      const newScale = Math.min(2.5, Math.max(0.25, v.scale * factor));
+      const wx = (px - v.x) / v.scale;
+      const wy = (py - v.y) / v.scale;
+      return { scale: newScale, x: px - wx * newScale, y: py - wy * newScale };
+    });
+  }, []);
+
+  // Trackpad two-finger scroll pans (both axes). Pinch / ctrl-scroll (which the OS
+  // reports as a wheel with ctrlKey) is swallowed so it neither zooms the canvas nor
+  // the whole page — zoom is +/- keys and the on-canvas buttons only. Attached
+  // natively with { passive: false } so preventDefault actually takes effect.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (e.ctrlKey) return; // pinch-zoom disabled
+      setVp((v) => ({ ...v, x: v.x - e.deltaX, y: v.y - e.deltaY }));
+    };
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // +/- keys zoom (in/out). Ignored while typing in a field so a "-" keeps typing.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) {
+        return;
+      }
+      if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        zoomBy(1.1);
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        zoomBy(1 / 1.1);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [zoomBy]);
 
   const addNode = () => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -249,7 +286,6 @@ export function EditorPage() {
         ref={canvasRef}
         className="ed-canvas"
         onPointerDown={onCanvasDown}
-        onWheel={onWheel}
       >
         <div className="ed-world" style={{ transform: `translate(${vp.x}px, ${vp.y}px) scale(${vp.scale})` }}>
           <svg className="ed-edges" aria-hidden>
@@ -284,6 +320,16 @@ export function EditorPage() {
             <p>Hit “+ Node” to drop your first beat. Drag a choice’s handle onto another node to wire it up.</p>
           </div>
         )}
+
+        <div className="ed-zoom">
+          <button title="Zoom out ( - )" aria-label="Zoom out" onClick={() => zoomBy(1 / 1.1)}>
+            −
+          </button>
+          <span className="ed-zoom-level">{Math.round(vp.scale * 100)}%</span>
+          <button title="Zoom in ( + )" aria-label="Zoom in" onClick={() => zoomBy(1.1)}>
+            +
+          </button>
+        </div>
       </div>
 
       {showAbilities && (
