@@ -54,7 +54,7 @@ test('replay: Restart returns to start and keeps "seen" markers', async ({ page 
   await expect(page.getByText('The End')).toBeVisible();
   await page.getByRole('button', { name: /restart/i }).click();
   await expect(page.getByText(/State your business/i)).toBeVisible();
-  await expect(page.getByText('seen').first()).toBeVisible(); // truth branch stays marked
+  await expect(page.getByText('Chosen').first()).toBeVisible(); // truth branch stays marked
 });
 
 test('rapid advance through nodes throws no page errors', async ({ page }) => {
