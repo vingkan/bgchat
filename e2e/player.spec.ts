@@ -48,13 +48,21 @@ test('number keys select choices', async ({ page }) => {
   await expect(page.getByText(/Honesty buys you a step/i)).toBeVisible();
 });
 
-test('replay: Restart returns to start and keeps "seen" markers', async ({ page }) => {
+test('replay: Restart returns to start and keeps "Chosen" markers', async ({ page }) => {
+  await page.getByText(/Tell him the truth/i).click();
+  await expect(page.getByText(/Thank him and enter/i)).toBeVisible();
+  await page.getByRole('button', { name: /restart/i }).click();
+  await expect(page.getByText(/State your business/i)).toBeVisible();
+  await expect(page.getByText('Chosen').first()).toBeVisible(); // truth branch stays marked
+});
+
+test('replay: Restart returns to start and keeps "Explored all paths" markers', async ({ page }) => {
   await page.getByText(/Tell him the truth/i).click();
   await page.getByText(/Thank him and enter/i).click();
   await expect(page.getByText('The End')).toBeVisible();
   await page.getByRole('button', { name: /restart/i }).click();
   await expect(page.getByText(/State your business/i)).toBeVisible();
-  await expect(page.getByText('Chosen').first()).toBeVisible(); // truth branch stays marked
+  await expect(page.getByText('Explored all paths').first()).toBeVisible(); // truth branch stays marked
 });
 
 test('rapid advance through nodes throws no page errors', async ({ page }) => {
