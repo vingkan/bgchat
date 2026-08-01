@@ -24,7 +24,7 @@ describe('ProgressTracker', () => {
   it('labels scenes and characters with unlocked / total counts', () => {
     const file = story([node('a', 'Alice'), node('b', 'Bob'), node('c', 'Cara')]);
     render(<ProgressTracker file={file} visited={['a', 'b']} />);
-    expect(screen.getByText('Scenes')).toBeInTheDocument();
+    expect(screen.getByText('Moments')).toBeInTheDocument();
     expect(screen.getByText('Characters')).toBeInTheDocument();
     // scenes 2/3, characters 2/3 — both the "2" and the "/ 3" appear twice.
     expect(screen.getAllByText('2').length).toBe(2);

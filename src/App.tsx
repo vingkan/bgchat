@@ -66,6 +66,8 @@ function App() {
     <DialoguePlayer
       key={override ? 'e2e' : storyKey}
       file={story}
+      // Real stories persist per-key; the dev e2e fixture stays storage-free.
+      storageKey={override ? undefined : storyKey}
       initialStarted={started}
       onBeginKey={handleBeginKey}
     />

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { CheckChoice, SimpleChoice } from '../story/types';
+import type { GameState } from '../engine/engine';
 import { sampleStory } from '../story/sample';
+import { rollD20 } from '../engine/rng';
 import { initPlayer, reduce } from './gameReducer';
 
 const simple = sampleStory.nodes.gate.choices[0] as SimpleChoice; // -> truth
@@ -51,11 +53,66 @@ describe('gameReducer', () => {
     expect(back.game.currentId).toBe('gate');
   });
 
+  it('retrying a check after BACK rolls a FRESH die (no save-scum lock)', () => {
+    // Resolve the check, commit it, go Back, resolve the same check again.
+    const first = reduce(sampleStory, initPlayer(sampleStory, 1), { type: 'RESOLVE_CHECK', choice: persuade });
+    const committedRng = first.pending!.nextGame.rngState; // generator after the first roll
+    const landed = reduce(sampleStory, first, { type: 'CONTINUE' });
+    const back = reduce(sampleStory, landed, { type: 'BACK' });
+    expect(back.game.currentId).toBe('gate'); // returned to the choice
+    const retry = reduce(sampleStory, back, { type: 'RESOLVE_CHECK', choice: persuade });
+    // The retry consumes the NEXT value in the sequence, not a replay of the first roll.
+    expect(retry.pending!.roll.die).toBe(rollD20(committedRng).die);
+    expect(retry.pending!.roll.die).not.toBe(first.pending!.roll.die);
+  });
+
   it('RESTART returns to start but keeps visited', () => {
     const advanced = reduce(sampleStory, initPlayer(sampleStory, 1), { type: 'SIMPLE_CHOICE', choice: simple });
     const restarted = reduce(sampleStory, advanced, { type: 'RESTART' });
     expect(restarted.game.currentId).toBe('gate');
     expect(restarted.game.visited).toContain('truth'); // seen persists
     expect(restarted.game.history).toEqual([]);
+  });
+
+  it('RESET wipes back to a fresh start (unlike RESTART, does NOT keep visited)', () => {
+    const advanced = reduce(sampleStory, initPlayer(sampleStory, 1), { type: 'SIMPLE_CHOICE', choice: simple });
+    const reset = reduce(sampleStory, advanced, { type: 'RESET' });
+    expect(reset.game.currentId).toBe('gate');
+    expect(reset.game.visited).toEqual(['gate']); // seen memory cleared
+    expect(reset.game.history).toEqual([]);
+    expect(reset.pending).toBeNull();
+  });
+});
+
+describe('initPlayer restore', () => {
+  const saved: GameState = {
+    currentId: 'truth',
+    history: [],
+    visited: ['gate', 'truth', 'ghost-node-that-no-longer-exists'],
+    rngState: 4242,
+  };
+
+  it('resumes from a valid saved game', () => {
+    const p = initPlayer(sampleStory, 1, saved);
+    expect(p.game.currentId).toBe('truth');
+    expect(p.game.rngState).toBe(4242);
+    expect(p.pending).toBeNull();
+  });
+
+  it('drops visited ids that no longer exist in the story', () => {
+    const p = initPlayer(sampleStory, 1, saved);
+    expect(p.game.visited).toEqual(['gate', 'truth']); // stale id filtered out
+  });
+
+  it('falls back to a fresh start when the saved node is unknown', () => {
+    const stale: GameState = { ...saved, currentId: 'deleted-node' };
+    const p = initPlayer(sampleStory, 1, stale);
+    expect(p.game.currentId).toBe('gate');
+    expect(p.game.visited).toEqual(['gate']);
+  });
+
+  it('starts fresh when there is no saved game', () => {
+    const p = initPlayer(sampleStory, 1, null);
+    expect(p.game.currentId).toBe('gate');
   });
 });

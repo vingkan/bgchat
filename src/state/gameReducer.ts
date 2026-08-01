@@ -25,9 +25,19 @@ export type Action =
   | { type: 'RESOLVE_CHECK'; choice: CheckChoice }
   | { type: 'CONTINUE' }
   | { type: 'BACK' }
-  | { type: 'RESTART' };
+  | { type: 'RESTART' }
+  | { type: 'RESET' };
 
-export function initPlayer(file: StoryFile, seed?: number): PlayerState {
+// Start a player. If a `saved` GameState is supplied AND it is semantically valid for this
+// story (its currentId still exists), resume from it — after filtering `visited` down to node
+// ids that still exist, so a since-edited story can't push the progress bar past 100%.
+// Otherwise begin a fresh playthrough. `saved` comes from localStorage (progressStore), which
+// has already checked the structural shape; here we own the story-specific semantic check.
+export function initPlayer(file: StoryFile, seed?: number, saved?: GameState | null): PlayerState {
+  if (saved && saved.currentId in file.nodes) {
+    const visited = saved.visited.filter((id) => id in file.nodes);
+    return { game: { ...saved, visited }, pending: null };
+  }
   return { game: createGame(file, seed), pending: null };
 }
 
@@ -53,6 +63,11 @@ export function reduce(file: StoryFile, state: PlayerState, action: Action): Pla
 
     case 'RESTART':
       return { game: restart(file, state.game), pending: null };
+
+    // A genuinely fresh start: unlike RESTART (which keeps `visited`), RESET wipes progress
+    // back to a brand-new game. Paired with clearing localStorage so a new person can play.
+    case 'RESET':
+      return initPlayer(file);
 
     default:
       return state;

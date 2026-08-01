@@ -4,6 +4,7 @@ import type { Choice, StoryFile } from '../story/types';
 import { primaryTarget } from '../story/types';
 import { validateStory } from '../engine/validation';
 import { useGame } from '../state/useGame';
+import { clearGame } from '../state/progressStore';
 import { BeginGate } from './BeginGate';
 import { ChoiceButton } from './ChoiceButton';
 import { DiceRoll } from './DiceRoll';
@@ -27,18 +28,25 @@ function nextVideos(file: StoryFile, choices: Choice[]): string[] {
 export function DialoguePlayer({
   file,
   seed,
+  storageKey,
   initialStarted = false,
   onBeginKey,
 }: {
   file: StoryFile;
   seed?: number;
+  // localStorage namespace for save/resume. Omit to disable persistence (unit tests, e2e).
+  storageKey?: string;
   // true => skip the Begin gate (arrived via a valid ?key= URL).
   initialStarted?: boolean;
   // Begin gate reports the typed key; returns false for an unknown key so the
   // gate can show an error. When absent (e.g. unit tests), Begin always proceeds.
   onBeginKey?: (key: string) => boolean;
 }) {
-  const { state, node, chooseSimple, resolveCheck, cont, back, restart } = useGame(file, seed);
+  const { state, node, chooseSimple, resolveCheck, cont, back, restart, reset } = useGame(
+    file,
+    seed,
+    storageKey,
+  );
   const [started, setStarted] = useState(initialStarted);
   const [muted, setMuted] = useState(true);
 
@@ -97,6 +105,17 @@ export function DialoguePlayer({
                 <button className="continue visible" onClick={restart}>
                   Restart
                 </button>
+                {storageKey && (
+                  <button
+                    className="ghost"
+                    onClick={() => {
+                      clearGame(storageKey);
+                      reset();
+                    }}
+                  >
+                    Reset Progress
+                  </button>
+                )}
               </div>
             ) : (
               <>

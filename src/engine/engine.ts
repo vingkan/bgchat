@@ -18,13 +18,11 @@ export interface RollResult {
   crit: 'success' | 'failure' | null; // nat 20 -> 'success', nat 1 -> 'failure'
 }
 
-// One recorded step. `rngBefore` is the rng state as it was WHEN this step was taken,
-// so rewinding to it and re-forwarding reproduces the same die (Back = true undo).
+// One recorded step: the node the player was on and the choice they made there.
 export interface HistoryEntry {
   nodeId: NodeId; // node the player was on when they made this choice
   choice: Choice;
   roll: RollResult | null; // present iff choice.kind === 'check'
-  rngBefore: number;
 }
 
 export interface GameState {
@@ -65,7 +63,6 @@ export function chooseSimple(state: GameState, choice: SimpleChoice): GameState 
     nodeId: state.currentId,
     choice,
     roll: null,
-    rngBefore: state.rngState,
   };
   return {
     currentId: choice.next,
@@ -116,7 +113,6 @@ export function resolveCheck(
     nodeId: state.currentId,
     choice,
     roll,
-    rngBefore: state.rngState,
   };
 
   const nextState: GameState = {
@@ -129,9 +125,10 @@ export function resolveCheck(
   return { state: nextState, roll };
 }
 
-// Step back `steps` history entries (default 1). Restores currentId and rngState
-// from the target entry's `rngBefore` so re-forwarding reproduces the same rolls.
-// `visited` is MONOTONIC and is NOT shrunk. Clamps to the start of history.
+// Step back `steps` history entries (default 1). Restores currentId and trims history,
+// but deliberately LEAVES the rng advanced — it is NOT rewound. So re-doing a check after
+// a Back rolls a FRESH die (each retry consumes the next value in the sequence); a failed
+// check is not locked in. `visited` is MONOTONIC and is NOT shrunk. Clamps to start of history.
 export function rewind(state: GameState, steps = 1): GameState {
   const n = Math.min(Math.max(Math.trunc(steps), 0), state.history.length);
   if (n === 0) return state;
@@ -141,6 +138,6 @@ export function rewind(state: GameState, steps = 1): GameState {
     currentId: undo.nodeId,
     history: state.history.slice(0, cut),
     visited: state.visited,
-    rngState: undo.rngBefore,
+    rngState: state.rngState, // keep the generator advanced -> retry rolls a new die
   };
 }

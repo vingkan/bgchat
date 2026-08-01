@@ -192,6 +192,7 @@
   line-height: 1.45;
   position: relative;
   display: inline;
+  margin-right: 10px;
 }
 .choice .label::after {
   content: '';
@@ -237,7 +238,6 @@
 
 .seen {
   display: inline-block;
-  margin-left: 10px;
   font-size: 9px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -252,6 +252,7 @@
   border: 1px solid var(--white-faint);
   border-radius: 50%;
   margin-right: 6px;
+  margin-top: -2px;
   vertical-align: middle;
 }
 
@@ -339,6 +340,28 @@
   outline: none;
 }
 
+/* Low-emphasis borderless button — sits quietly under Restart on the end card. */
+.ghost {
+  background: none;
+  border: none;
+  color: var(--white-dim);
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 4px 0;
+  align-self: flex-start;
+  opacity: 0.6;
+  transition: color 180ms ease, opacity 180ms ease;
+}
+.ghost:hover,
+.ghost:focus-visible {
+  color: var(--accent);
+  opacity: 1;
+  outline: none;
+}
+
 /* Dice overlay */
 .overlay {
   position: fixed;
@@ -406,6 +429,7 @@
   font-size: 24px;
   font-weight: 300;
   letter-spacing: 0.28em;
+  margin-left: 0.28em;
   text-transform: uppercase;
   font-variant-caps: small-caps;
   min-height: 30px;
@@ -479,6 +503,7 @@
   font-size: clamp(34px, 5vw, 60px);
   font-weight: 200;
   letter-spacing: 0.34em;
+  margin-left: 0.34em;
   text-transform: uppercase;
   color: var(--white);
   font-variant-caps: small-caps;

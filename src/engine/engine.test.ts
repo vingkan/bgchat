@@ -45,11 +45,11 @@ describe('chooseSimple', () => {
     expect(s.currentId).toBe('truth');
   });
 
-  it('appends a history entry recording rngBefore', () => {
+  it('appends a history entry for the step', () => {
     const g = createGame(sampleStory, 55);
     const s = chooseSimple(g, choice);
     expect(s.history).toHaveLength(1);
-    expect(s.history[0]).toMatchObject({ nodeId: 'gate', choice, roll: null, rngBefore: 55 });
+    expect(s.history[0]).toMatchObject({ nodeId: 'gate', choice, roll: null });
   });
 
   it('adds the target to visited without duplicates', () => {
@@ -141,14 +141,16 @@ describe('rewind', () => {
     expect(rewind(s, 1).visited).toContain('truth');
   });
 
-  it('CRITICAL: rewinding past a check and re-forwarding reproduces the same die', () => {
+  it('CRITICAL: rewinding past a check LEAVES the rng advanced so a retry rolls a fresh die', () => {
     const g = { ...createGame(sampleStory), rngState: 987654 };
     const first = resolveCheck(g, check());
     const back = rewind(first.state, 1);
-    expect(back.rngState).toBe(987654);
+    // Back does NOT rewind the generator — it stays where the roll left it.
+    expect(back.rngState).toBe(first.state.rngState);
+    expect(back.rngState).not.toBe(987654);
+    // Retrying the same check consumes the NEXT value in the sequence, not a repeat.
     const again = resolveCheck(back, check());
-    expect(again.roll.die).toBe(first.roll.die);
-    expect(again.roll.success).toBe(first.roll.success);
+    expect(again.roll.die).toBe(rollD20(first.state.rngState).die);
   });
 
   it('is a no-op at the start of history', () => {

@@ -2,8 +2,8 @@
 //
 // This is a well-known tiny 32-bit generator. Do NOT "clean up" the bit-twiddling
 // (>>>, Math.imul, the magic 0x6d2b79f5) into something friendlier: those exact ops
-// are what make the sequence deterministic. Determinism is what lets tests reproduce
-// a roll and what makes "Back" a true undo (see engine.rewind).
+// are what make the sequence deterministic. Determinism is what lets a given seed
+// reproduce a whole playthrough and what lets tests reproduce a specific roll.
 //
 // Pure functional form: given the current 32-bit state, return the next value in
 // [0, 1) AND the next state. Callers thread `next` forward; nothing mutates.

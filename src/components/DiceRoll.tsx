@@ -34,11 +34,21 @@ export function DiceRoll({ roll, onContinue }: Props) {
   const [flash, setFlash] = useState(false); // gold impact ripple, plays once on land
   const btnRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (!roll) return;
+  // Reset the reveal state SYNCHRONOUSLY when a new roll arrives, i.e. during render
+  // (before paint) rather than in the effect below. This component stays mounted across
+  // rolls (only the overlay mounts/unmounts via AnimatePresence), so without this the
+  // previous roll's revealed/face/result would paint for a frame on the next roll's first
+  // frame — the flash. `roll` is a fresh object per RESOLVE_CHECK, so identity compare is safe.
+  const [prevRoll, setPrevRoll] = useState<RollResult | null>(roll);
+  if (roll !== prevRoll) {
+    setPrevRoll(roll);
     setRevealed(false);
     setFace('?');
     setFlash(false);
+  }
+
+  useEffect(() => {
+    if (!roll) return;
     const flicker = setInterval(() => setFace(Math.floor(Math.random() * 20) + 1), 45);
     const el = dieScope.current;
     let ripple: ReturnType<typeof setTimeout> | undefined;
