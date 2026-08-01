@@ -1,0 +1,11 @@
+{
+    "name": "Story",
+    "short_name": "Story",
+    "description": "Story",
+    "theme_color": "#c9b68a",
+    "background_color": "#0E1114",
+    "display": "fullscreen",
+    "orientation": "portrait",
+    "scope": "/",
+    "start_url": "/"
+}
