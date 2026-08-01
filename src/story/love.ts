@@ -714,12 +714,12 @@ export const loveStory: StoryFile = {
     "GiftStateSuggest": {
       "id": "GiftStateSuggest",
       "speaker": "Vinesh",
-      "text": "You found Natalia! [Gift Unlocked] Trip for two to anywhere in California (doggy sitter included).",
+      "text": "You found Natalia! [Unlocked Gift 3 of 4]",
       "video": "/video/vinesh-offering.mp4",
       "choices": [
         {
           "kind": "simple",
-          "label": "Accept",
+          "label": "Trip for two to anywhere in California (doggy sitter included).",
           "next": "Suggestion"
         }
       ]
@@ -727,12 +727,12 @@ export const loveStory: StoryFile = {
     "GiftStateBack": {
       "id": "GiftStateBack",
       "speaker": "Vinesh",
-      "text": "You found Natalia! [Gift Unlocked] Trip for two to anywhere in California (doggy sitter included).",
+      "text": "You found Natalia! [Unlocked Gift 3 of 4]",
       "video": "/video/vinesh-offering.mp4",
       "choices": [
         {
           "kind": "simple",
-          "label": "Accept",
+          "label": "Trip for two to anywhere in California (doggy sitter included).",
           "next": "Intro"
         }
       ]
@@ -740,12 +740,12 @@ export const loveStory: StoryFile = {
     "GiftStayBumi": {
       "id": "GiftStayBumi",
       "speaker": "Vinesh",
-      "text": "You found Bumi! [Gift Unlocked] Staycation for two (Bumi included).",
+      "text": "You found Bumi! [Unlocked Gift 2 of 4]",
       "video": "/video/vinesh-offering.mp4",
       "choices": [
         {
           "kind": "simple",
-          "label": "Accept",
+          "label": "Staycation for two (Bumi included).",
           "next": "End"
         }
       ]
@@ -753,12 +753,12 @@ export const loveStory: StoryFile = {
     "GiftGlobalYamo": {
       "id": "GiftGlobalYamo",
       "speaker": "Vinesh",
-      "text": "We've been to Yamo. Where to next? [Gift Unlocked] Trip for two to anywhere in the world (doggy sitter included).",
+      "text": "We've been to Yamo. Where to next? [Unlocked Gift 4 of 4]",
       "video": "/video/vinesh-offering.mp4",
       "choices": [
         {
           "kind": "simple",
-          "label": "Accept",
+          "label": "Trip for two to anywhere in the world (doggy sitter included).",
           "next": "SaturdayAsk"
         }
       ]
@@ -766,12 +766,12 @@ export const loveStory: StoryFile = {
     "GiftCountryTime": {
       "id": "GiftCountryTime",
       "speaker": "Vinesh",
-      "text": "You made it to our first date! [Gift Unlocked] Trip for two to anywhere in the country (doggy sitter included).",
+      "text": "You made it to our first date! [Unlocked Gift 1 of 4]",
       "video": "/video/vinesh-offering.mp4",
       "choices": [
         {
           "kind": "simple",
-          "label": "Accept",
+          "label": "Trip for two to anywhere in the country (doggy sitter included).",
           "next": "End"
         }
       ]
