@@ -119,6 +119,9 @@ export interface EditorState {
   skillMods: Record<string, number>; // one modifier per skill (sub-ability)
   lastSpeaker: string; // autofilled onto the next new node
   selectedId: NodeId | null;
+  // Story-level opening-screen copy. Not editable here, but carried opaquely so it
+  // survives an import → export round-trip (mirrors nudgeUnmute / skillModifiers).
+  openingText?: string;
 }
 
 export type Handle = 'next' | 'success' | 'failure';
@@ -164,6 +167,7 @@ export type Action =
   | { type: 'setCheck'; id: NodeId; index: number; on: boolean }
   | { type: 'connect'; id: NodeId; index: number; handle: Handle; target: NodeId }
   | { type: 'setSkillMod'; skill: string; mod: number }
+  | { type: 'setOpeningText'; text: string }
   | { type: 'relayout'; positions: Record<NodeId, { x: number; y: number }> }
   | { type: 'load'; state: EditorState };
 
@@ -331,6 +335,11 @@ export function reducer(state: EditorState, action: EditorState | Action): Edito
     case 'setSkillMod':
       return { ...state, skillMods: { ...state.skillMods, [a.skill]: a.mod } };
 
+    // Story-level opening-screen copy, authored on the start node. Empty => undefined
+    // so it's dropped from exports (toStoryFile only emits it when set).
+    case 'setOpeningText':
+      return { ...state, openingText: a.text || undefined };
+
     case 'relayout': {
       const nodes: Record<NodeId, EditorNode> = {};
       for (const [id, n] of Object.entries(state.nodes)) {
@@ -407,6 +416,8 @@ export function toStoryFile(state: EditorState): StoryFile {
   }
   const file: StoryFile = { start: state.start ?? state.order[0] ?? '', nodes };
   if (Object.keys(skillModifiers).length > 0) file.skillModifiers = skillModifiers;
+  // Not editable here, but round-trips: keep it only when set so exports stay clean.
+  if (state.openingText) file.openingText = state.openingText;
   return file;
 }
 
@@ -441,7 +452,15 @@ export function fromStoryFile(file: StoryFile): EditorState {
     }
   }
 
-  return { start: file.start || ids[0] || null, nodes, order, skillMods, lastSpeaker: '', selectedId: null };
+  return {
+    start: file.start || ids[0] || null,
+    nodes,
+    order,
+    skillMods,
+    lastSpeaker: '',
+    selectedId: null,
+    openingText: file.openingText,
+  };
 }
 
 // ─── sessionStorage persistence ──────────────────────────────────────────────

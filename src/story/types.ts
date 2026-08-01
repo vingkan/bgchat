@@ -60,6 +60,11 @@ export interface StoryFile {
   // and a modifier survives export/import even if no node currently checks it.
   // Falls back to a check's own `modifier` when a skill is absent here.
   skillModifiers?: Record<string, number>;
+  // Optional title-card copy shown on an opening screen (this text + a Begin button)
+  // before the first node. Shown whenever the story is at its fresh start — first
+  // entry and after Restart/Reset — but NOT when resuming a save already underway.
+  // Absent => no opening screen. Preserved across import/export; not editable in the editor.
+  openingText?: string;
 }
 
 // The node id a choice leads to on its "primary" (success/next) path.

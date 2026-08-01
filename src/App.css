@@ -606,6 +606,17 @@
   max-width: 420px;
   line-height: 1.6;
 }
+/* Opening title card: a readable paragraph of story intro copy. Wider and softer
+   than .begin-sub since it can run several sentences. */
+.opening-text {
+  font-size: clamp(15px, 2.2vw, 19px);
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  line-height: 1.75;
+  color: var(--white);
+  max-width: 560px;
+  white-space: pre-line;
+}
 .begin-key {
   background: none;
   border: 1px solid rgba(245, 245, 245, 0.3);

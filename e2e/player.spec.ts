@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
   page.on('pageerror', (err) => {
     throw err;
   });
-  await page.getByRole('button', { name: /begin/i }).click();
+  await page.getByTestId('unlock').click();
 });
 
 test('opens on the gate node', async ({ page }) => {

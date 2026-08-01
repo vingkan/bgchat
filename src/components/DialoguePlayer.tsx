@@ -9,6 +9,7 @@ import { useGamepad } from '../input/useGamepad';
 import { firstFocusable, moveFocus, type NavDir, type NavItem } from '../input/menuNav';
 import type { NavButton } from '../input/gamepad';
 import { BeginGate } from './BeginGate';
+import { OpeningScreen } from './OpeningScreen';
 import { ChoiceButton } from './ChoiceButton';
 import { DiceRoll } from './DiceRoll';
 import { ProgressTracker } from './ProgressTracker';
@@ -55,6 +56,31 @@ export function DialoguePlayer({
   );
   const [started, setStarted] = useState(initialStarted);
   const [muted, setMuted] = useState(true);
+
+  // The opening screen (a story title card) shows before the first node whenever the
+  // player is sitting on the start node. `began` = past that card. Only stories with
+  // `openingText` have one; without it `began` starts true so nothing changes.
+  //
+  // `openingPassed` keys purely on position: the card is considered already passed
+  // unless we're on the start node of a story that has one. It seeds `began` on mount
+  // (page load / reload) and is re-applied on Home, so entering from the key screen
+  // shows the card again when there's been no progress, but resumes straight to a
+  // mid-story node otherwise. Restart/Reset flip `began` false in-session (they land
+  // on the start node too).
+  const hasOpening = Boolean(file.openingText);
+  const openingPassed = () => !hasOpening || state.game.currentId !== file.start;
+  const [began, setBegan] = useState(openingPassed);
+
+  // Restart/Reset both rewind the game to the start node; re-show the opening card too.
+  const doRestart = () => {
+    restart();
+    if (hasOpening) setBegan(false);
+  };
+  const doReset = () => {
+    if (storageKey) clearGame(storageKey);
+    reset();
+    if (hasOpening) setBegan(false);
+  };
 
   const { pending } = state;
   const isEnd = node.choices.length === 0;
@@ -134,7 +160,7 @@ export function DialoguePlayer({
   // Backspace = Back; number keys jump straight to an option. Off before Begin and
   // while a roll is resolving (DiceRoll owns input then, and Back is unavailable).
   useEffect(() => {
-    if (!started || pending) return;
+    if (!started || !began || pending) return;
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
@@ -166,11 +192,11 @@ export function DialoguePlayer({
     return () => window.removeEventListener('keydown', onKey);
     // navigate/select/back read live values via refs + stable dispatchers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [started, pending, node]);
+  }, [started, began, pending, node]);
 
   // Gamepad (PS4/PS5 + Xbox via the standard mapping): D-pad / left stick move the
   // cursor, ✕ selects the focused item (reusing its onClick), ○ goes Back.
-  useGamepad(started && !pending, (btn: NavButton) => {
+  useGamepad(started && began && !pending, (btn: NavButton) => {
     if (btn === 'select') {
       if (navActiveRef.current) navEls()[focusIndexRef.current]?.click();
       return;
@@ -232,7 +258,7 @@ export function DialoguePlayer({
               >
                 Back
               </button>
-              <button data-nav className="ctrl" onClick={restart}>
+              <button data-nav className="ctrl" onClick={doRestart}>
                 Restart
               </button>
               {/* Unmute nudge: when a node opts in via `nudgeUnmute` AND sound is
@@ -252,14 +278,7 @@ export function DialoguePlayer({
                 </button>
               </span>
               {storageKey && (
-                <button
-                  data-nav
-                  className="ctrl"
-                  onClick={() => {
-                    clearGame(storageKey);
-                    reset();
-                  }}
-                >
+                <button data-nav className="ctrl" onClick={doReset}>
                   Reset
                 </button>
               )}
@@ -270,6 +289,10 @@ export function DialoguePlayer({
                 onClick={() => {
                   onHome?.();
                   setStarted(false);
+                  // Re-entering from the key screen should show the opening card again
+                  // when no progress was made (still on the start node), or resume the
+                  // mid-story node otherwise — same rule as the initial mount.
+                  setBegan(openingPassed());
                 }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -288,9 +311,14 @@ export function DialoguePlayer({
       </div>
       {/* <div className="bar bottom" /> */}
 
-      {started && <ProgressTracker file={file} visited={state.game.visited} />}
+      {started && began && <ProgressTracker file={file} visited={state.game.visited} />}
 
       <DiceRoll roll={pending?.roll ?? null} onContinue={cont} />
+      {/* Opening title card: sits over the (muted, autoplaying) first-node stage
+          until the player clicks Begin. Only when this story defines openingText. */}
+      {started && !began && file.openingText && (
+        <OpeningScreen text={file.openingText} onBegin={() => setBegan(true)} />
+      )}
       {!started && (
         <BeginGate
           onBegin={(key) => {

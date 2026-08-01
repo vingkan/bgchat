@@ -50,8 +50,8 @@ export function BeginGate({ onBegin }: Props) {
             No story with that code.
           </p>
         )}
-        <button className="continue visible" onClick={submit}>
-          Begin
+        <button className="continue visible" data-testid="unlock" onClick={submit}>
+          Unlock
         </button>
       </div>
       <a className="editor-link" href="?editor">

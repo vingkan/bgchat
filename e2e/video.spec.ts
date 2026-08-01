@@ -7,10 +7,10 @@ import { expect, test } from '@playwright/test';
 test.beforeEach(async ({ page }) => {
   await page.goto('/?e2eVideo');
   await expect(page.getByText('Test A')).toBeVisible();
-  await page.getByRole('button', { name: /begin/i }).click();
+  await page.getByTestId('unlock').click();
 });
 
-test('the Begin gesture unlocks muted autoplay of the first clip', async ({ page }) => {
+test('the Unlock gesture unlocks muted autoplay of the first clip', async ({ page }) => {
   const clip = page.getByTestId('clip');
   await expect(clip).toBeVisible();
   // Playing = advancing currentTime and not paused.

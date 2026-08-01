@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { CheckChoice, StoryFile } from '../story/types';
-import { fromStoryFile, initialState, toStoryFile, type EditorNode, type EditorState } from './model';
+import {
+  fromStoryFile,
+  initialState,
+  reducer,
+  toStoryFile,
+  type EditorNode,
+  type EditorState,
+} from './model';
 
 // A minimal EditorState with one node and optional skill-modifier overrides.
 function stateWith(node: EditorNode, mods: Record<string, number> = {}): EditorState {
@@ -67,6 +74,29 @@ describe('nudgeUnmute round-trip', () => {
   it('omits the field entirely when unset (keeps exports clean)', () => {
     const file = toStoryFile(stateWith(simpleNode()));
     expect('nudgeUnmute' in file.nodes.n1).toBe(false);
+  });
+});
+
+describe('openingText round-trip', () => {
+  it('preserves openingText on export, and back through import', () => {
+    const state: EditorState = { ...stateWith(simpleNode()), openingText: 'Once upon a time.' };
+    const file = toStoryFile(state);
+    expect(file.openingText).toBe('Once upon a time.');
+    // ...and it survives the trip back into the editor.
+    expect(fromStoryFile(file).openingText).toBe('Once upon a time.');
+  });
+
+  it('omits the field entirely when unset (keeps exports clean)', () => {
+    const file = toStoryFile(stateWith(simpleNode()));
+    expect('openingText' in file).toBe(false);
+  });
+
+  it('setOpeningText sets the text, and clears back to undefined when emptied', () => {
+    const base = stateWith(simpleNode());
+    const set = reducer(base, { type: 'setOpeningText', text: 'Once upon a time.' });
+    expect(set.openingText).toBe('Once upon a time.');
+    const cleared = reducer(set, { type: 'setOpeningText', text: '' });
+    expect(cleared.openingText).toBeUndefined();
   });
 });
 

@@ -11,14 +11,16 @@ function setup(props?: { storageKey?: string }) {
   return user;
 }
 
+// The code gate's button is "Unlock" (identified by its testid); the opening card's
+// advance button is "Begin". Keep the two distinct everywhere in these tests.
 async function begin(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: /begin/i }));
+  await user.click(screen.getByTestId('unlock'));
 }
 
 describe('DialoguePlayer', () => {
-  it('shows the Begin gate first, then the opening node', async () => {
+  it('shows the Unlock gate first, then the opening node', async () => {
     const user = setup();
-    expect(screen.getByRole('button', { name: /begin/i })).toBeInTheDocument();
+    expect(screen.getByTestId('unlock')).toBeInTheDocument();
     await begin(user);
     expect(screen.getByText('Gate Warden Aldric')).toBeInTheDocument();
     expect(screen.getByText(/State your business/i)).toBeInTheDocument();
@@ -123,9 +125,9 @@ describe('DialoguePlayer', () => {
     await user.click(screen.getByText(/Tell him the truth/i));
     await screen.findByText(/Honesty buys you a step/i); // advanced one node
     await user.click(screen.getByRole('button', { name: /home/i }));
-    // Back at the Begin gate (key entry).
-    expect(await screen.findByRole('button', { name: /begin/i })).toBeInTheDocument();
-    // Re-begin resumes exactly where we were (in-memory progress intact).
+    // Back at the Unlock gate (key entry).
+    expect(await screen.findByTestId('unlock')).toBeInTheDocument();
+    // Re-unlock resumes exactly where we were (in-memory progress intact).
     await begin(user);
     expect(await screen.findByText(/Honesty buys you a step/i)).toBeInTheDocument();
   });
@@ -213,7 +215,7 @@ describe('DialoguePlayer — unmute nudge', () => {
   async function beginNudge() {
     const user = userEvent.setup();
     render(<DialoguePlayer file={nudgeStory} seed={1} />);
-    await user.click(screen.getByRole('button', { name: /begin/i }));
+    await user.click(screen.getByTestId('unlock'));
     return user;
   }
 
@@ -235,5 +237,144 @@ describe('DialoguePlayer — unmute nudge', () => {
     await user.click(screen.getByText(/Go on/i)); // -> node "b" (no nudgeUnmute)
     await screen.findByText(/quiet room/i);
     expect(screen.queryByText(/sound on/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('DialoguePlayer — opening screen', () => {
+  const OPENING = 'A story begins in the dark.';
+  const openingStory: StoryFile = {
+    start: 'a',
+    openingText: OPENING,
+    nodes: {
+      a: {
+        id: 'a',
+        speaker: 'Ada',
+        text: 'Listen closely.',
+        video: '',
+        choices: [{ kind: 'simple', label: 'Go on', next: 'b' }],
+      },
+      b: { id: 'b', speaker: 'Ada', text: 'A quiet room.', video: '', choices: [] },
+    },
+  };
+
+  // Render + click Unlock (the code gate), landing on the opening card.
+  async function toOpening(storageKey?: string) {
+    const user = userEvent.setup();
+    render(<DialoguePlayer file={openingStory} seed={1} storageKey={storageKey} />);
+    await user.click(screen.getByTestId('unlock'));
+    return user;
+  }
+
+  it('shows the opening card after Begin, before the first node', async () => {
+    await toOpening();
+    // The card is up (it overlays the not-yet-entered first-node stage).
+    expect(screen.getByText(OPENING)).toBeInTheDocument();
+  });
+
+  it('clicking the opening Begin enters the first node', async () => {
+    const user = await toOpening();
+    await user.click(screen.getByRole('button', { name: /begin/i })); // the opening card's Begin
+    expect(await screen.findByText(/Listen closely/i)).toBeInTheDocument();
+    expect(screen.queryByText(OPENING)).not.toBeInTheDocument();
+    // Still can't go back on the very first node.
+    expect(screen.getByRole('button', { name: /^back$/i })).toBeDisabled();
+  });
+
+  it('the opening Begin is selectable by keyboard (a fresh Enter enters the first node)', async () => {
+    const user = await toOpening();
+    // The card owns its own key handling (Enter/Space), independent of focus, but only
+    // after the unlocking key has been released (arm-on-keyup). Release, then press.
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', bubbles: true }));
+    await user.keyboard('{Enter}');
+    expect(await screen.findByText(/Listen closely/i)).toBeInTheDocument();
+    expect(screen.queryByText(OPENING)).not.toBeInTheDocument();
+  });
+
+  it('a key still held from unlocking cannot skip the card (arm-on-keyup)', async () => {
+    await toOpening();
+    expect(screen.getByText(OPENING)).toBeInTheDocument();
+    // The unlock Enter is still held: keydowns (incl. auto-repeat) arrive before any keyup.
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', repeat: true, bubbles: true }));
+    // The card must stay up — not armed until a keyup (the node stage stays behind it).
+    expect(screen.getByText(OPENING)).toBeInTheDocument();
+  });
+
+  it('Restart returns to the opening card', async () => {
+    const user = await toOpening();
+    await user.click(screen.getByRole('button', { name: /begin/i })); // into node a
+    await screen.findByText(/Listen closely/i);
+    await user.click(screen.getByRole('button', { name: /restart/i }));
+    // The opening card is back up over the (reset-to-start) stage.
+    expect(await screen.findByText(OPENING)).toBeInTheDocument();
+    // ...and the opening Begin is offered again, gating re-entry.
+    expect(screen.getByRole('button', { name: /begin/i })).toBeInTheDocument();
+  });
+
+  it('Reset returns to the opening card', async () => {
+    const user = await toOpening('OPEN-TEST');
+    await user.click(screen.getByRole('button', { name: /begin/i })); // into node a
+    await screen.findByText(/Listen closely/i);
+    await user.click(screen.getByRole('button', { name: /^reset$/i }));
+    expect(await screen.findByText(OPENING)).toBeInTheDocument();
+    localStorage.clear();
+  });
+
+  it('reloading on the start node shows the opening card, even with prior history', async () => {
+    // A save sitting on the start node (fresh, a reload there, or a loop back to it).
+    localStorage.setItem(
+      'bgchat-progress-v1:OPEN-TEST',
+      JSON.stringify({
+        currentId: 'a',
+        history: [{ nodeId: 'a', choice: { kind: 'simple', label: 'Go on', next: 'b' }, roll: null }],
+        visited: ['a', 'b'],
+        chosen: ['a#0'],
+        rngState: 1,
+      }),
+    );
+    render(<DialoguePlayer file={openingStory} seed={1} storageKey="OPEN-TEST" initialStarted />);
+    expect(await screen.findByText(OPENING)).toBeInTheDocument();
+    localStorage.clear();
+  });
+
+  it('re-entering from Home shows the opening again when no progress was made', async () => {
+    const user = await toOpening();
+    await user.click(screen.getByRole('button', { name: /begin/i })); // opening -> node a
+    await screen.findByText(/Listen closely/i);
+    // Home without progressing, then re-enter from the key screen.
+    await user.click(screen.getByRole('button', { name: /home/i }));
+    await user.click(await screen.findByTestId('unlock')); // key-screen Unlock
+    // Still on the start node, so the opening card returns.
+    expect(await screen.findByText(OPENING)).toBeInTheDocument();
+  });
+
+  it('re-entering from Home resumes the mid-story node without the opening', async () => {
+    const user = await toOpening();
+    await user.click(screen.getByRole('button', { name: /begin/i })); // opening -> node a
+    await user.click(await screen.findByText(/Go on/i)); // -> node b (progressed)
+    await screen.findByText(/A quiet room/i);
+    await user.click(screen.getByRole('button', { name: /home/i }));
+    await user.click(await screen.findByTestId('unlock')); // key-screen Unlock
+    // Mid-story: resume node b directly, no opening card.
+    expect(await screen.findByText(/A quiet room/i)).toBeInTheDocument();
+    expect(screen.queryByText(OPENING)).not.toBeInTheDocument();
+  });
+
+  it('resuming a mid-story save skips the opening card and lands on the saved node', async () => {
+    // Seed a save that has progressed to node "b" (matches progressStore's key + shape).
+    localStorage.setItem(
+      'bgchat-progress-v1:OPEN-TEST',
+      JSON.stringify({
+        currentId: 'b',
+        history: [{ nodeId: 'a', choice: { kind: 'simple', label: 'Go on', next: 'b' }, roll: null }],
+        visited: ['a', 'b'],
+        chosen: ['a#0'],
+        rngState: 1,
+      }),
+    );
+    render(<DialoguePlayer file={openingStory} seed={1} storageKey="OPEN-TEST" initialStarted />);
+    expect(await screen.findByText(/A quiet room/i)).toBeInTheDocument();
+    expect(screen.queryByText(OPENING)).not.toBeInTheDocument();
+    localStorage.clear();
   });
 });

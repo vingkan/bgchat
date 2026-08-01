@@ -791,5 +791,6 @@ export const loveStory: StoryFile = {
     "Deception": -1,
     "Intimidation": 2,
     "Performance": 2
-  }
+  },
+  "openingText": "Play as Past Kishahnica, relive her first text messages with Vinesh, and follow the branching paths to our first date."
 };

@@ -15,7 +15,7 @@ function keyFromUrl(): string | null {
 
 function App() {
   // Story key drives which story plays. A valid ?key= in the URL selects it and
-  // skips the opening screen (started = true); otherwise we show the Begin gate
+  // skips the Unlock gate (started = true); otherwise we show the Unlock gate
   // on the default story.
   const [storyKey, setStoryKey] = useState<string>(() => keyFromUrl() ?? DEFAULT_KEY);
   const [started, setStarted] = useState<boolean>(() => keyFromUrl() !== null);
@@ -44,7 +44,7 @@ function App() {
 
   const story = override ?? stories[storyKey] ?? stories[DEFAULT_KEY];
 
-  // Called by the Begin gate with the typed key. Empty => begin the current story.
+  // Called by the Unlock gate with the typed key. Empty => begin the current story.
   // A valid key => write ?key= and switch. Unknown => false so the gate shows an
   // error. Returns whether Begin should proceed.
   const handleBeginKey = (typed: string): boolean => {

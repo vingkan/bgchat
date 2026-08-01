@@ -120,7 +120,7 @@ export function EditorPage() {
     }, 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.nodes, state.order, state.skillMods, state.start]);
+  }, [state.nodes, state.order, state.skillMods, state.start, state.openingText]);
 
   // ── Global pointer handling for pan / move / connect ──────────────────────
   useEffect(() => {
@@ -317,6 +317,9 @@ export function EditorPage() {
     <div className="ed-root">
       <header className="ed-toolbar">
         <span className="ed-brand">Story Editor</span>
+        <a href="/bgchat/">
+          <button>Home</button>
+        </a>
         <button onClick={addNode}>+ Moment</button>
         <button className={showAbilities ? 'on' : ''} onClick={() => setShowAbilities((s) => !s)}>
           Abilities
@@ -360,6 +363,7 @@ export function EditorPage() {
                 node={node}
                 selected={state.selectedId === id}
                 isStart={state.start === id}
+                openingText={state.start === id ? state.openingText : undefined}
                 existingIds={existingIds}
                 dispatch={dispatch}
                 onSelect={(nid) => dispatch({ type: 'selectNode', id: nid })}

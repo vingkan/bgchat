@@ -14,6 +14,8 @@ interface Props {
   node: EditorNode;
   selected: boolean;
   isStart: boolean;
+  // Story-level opening-screen copy, editable only on the start node (undefined elsewhere).
+  openingText?: string;
   existingIds: string[];
   dispatch: (a: Action) => void;
   onSelect: (id: string) => void;
@@ -28,6 +30,7 @@ function NodeCardImpl({
   node,
   selected,
   isStart,
+  openingText,
   existingIds,
   dispatch,
   onSelect,
@@ -74,7 +77,7 @@ function NodeCardImpl({
       </div>
 
       {selected ? (
-        <EditBody node={node} dispatch={dispatch} />
+        <EditBody node={node} dispatch={dispatch} isStart={isStart} openingText={openingText} />
       ) : (
         <ReadBody node={node} onHandleDown={onHandleDown} />
       )}
@@ -116,12 +119,36 @@ function ReadBody({
 
 // ─── Editable body ───────────────────────────────────────────────────────────
 
-function EditBody({ node, dispatch }: { node: EditorNode; dispatch: (a: Action) => void }) {
+function EditBody({
+  node,
+  dispatch,
+  isStart,
+  openingText,
+}: {
+  node: EditorNode;
+  dispatch: (a: Action) => void;
+  isStart: boolean;
+  openingText?: string;
+}) {
   const stop = (e: React.PointerEvent) => e.stopPropagation();
   // Index of the choice currently being dragged for reordering (null = none).
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   return (
     <div className="ed-edit" onPointerDown={stop}>
+      {/* Story-level intro card copy, surfaced on the start node only. */}
+      {isStart && (
+        <label className="ed-field">
+          <span>Opening screen</span>
+          <textarea
+            className="ed-textarea"
+            value={openingText ?? ''}
+            placeholder="Intro shown before the story's first node (optional)…"
+            rows={3}
+            onChange={(e) => dispatch({ type: 'setOpeningText', text: e.target.value })}
+          />
+        </label>
+      )}
+
       <div className="ed-row">
         <label className="ed-field">
           <span>Video</span>
