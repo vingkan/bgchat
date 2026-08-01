@@ -56,3 +56,8 @@ export interface StoryFile {
 export function primaryTarget(choice: Choice): NodeId {
   return choice.kind === 'check' ? choice.onSuccess : choice.next;
 }
+
+// Every node id a choice can transition to directly (both branches of a check).
+export function choiceTargets(choice: Choice): NodeId[] {
+  return choice.kind === 'check' ? [choice.onSuccess, choice.onFailure] : [choice.next];
+}

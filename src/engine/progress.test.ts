@@ -1,11 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import type { DialogueNode, NodeId, StoryFile } from '../story/types';
-import { DIAMOND_LIMIT, deriveProgress } from './progress';
+import type { Choice, DialogueNode, NodeId, StoryFile } from '../story/types';
+import { DIAMOND_LIMIT, choiceTag, deriveProgress } from './progress';
+import { chosenKey } from './engine';
 
 // Minimal node builder — only the fields deriveProgress reads matter here.
 function node(id: NodeId, speaker: string): DialogueNode {
   return { id, speaker, text: '', video: '', choices: [] };
 }
+
+// Node with outgoing simple choices, for reachability tests.
+function branch(id: NodeId, ...next: NodeId[]): DialogueNode {
+  return {
+    id,
+    speaker: '',
+    text: '',
+    video: '',
+    choices: next.map((n) => ({ kind: 'simple', label: '', next: n }) as Choice),
+  };
+}
+const toSimple = (next: NodeId): Choice => ({ kind: 'simple', label: '', next });
+const toCheck = (onSuccess: NodeId, onFailure: NodeId): Choice => ({
+  kind: 'check',
+  label: '',
+  skill: '',
+  dc: 10,
+  onSuccess,
+  onFailure,
+});
 
 function story(nodes: DialogueNode[]): StoryFile {
   const map: Record<NodeId, DialogueNode> = {};
@@ -88,5 +109,69 @@ describe('deriveProgress', () => {
       characters: { unlocked: 0, total: 1, useIcons: true },
       percent: 0,
     });
+  });
+});
+
+describe('choiceTag', () => {
+  // Linear branch behind the choice: b -> c.
+  const linear = story([branch('a', 'b'), branch('b', 'c'), node('c', '')]);
+
+  it("returns 'none' when the option has not been taken", () => {
+    expect(choiceTag(linear, 'a', toSimple('b'), 0, new Set(), [])).toBe('none');
+  });
+
+  it("returns 'chosen' once the option is recorded, even with descendants unvisited", () => {
+    const chosen = new Set([chosenKey('a', 0)]);
+    expect(choiceTag(linear, 'a', toSimple('b'), 0, chosen, ['b'])).toBe('chosen');
+  });
+
+  it("no cross-option bleed: recording a DIFFERENT option leaves this one 'none'", () => {
+    const chosen = new Set([chosenKey('a', 1)]); // a sibling option at the same node
+    expect(choiceTag(linear, 'a', toSimple('b'), 0, chosen, ['b', 'c'])).toBe('none');
+  });
+
+  it("upgrades to 'all' only when the option is chosen AND every reachable node is visited", () => {
+    const chosen = new Set([chosenKey('a', 0)]);
+    expect(choiceTag(linear, 'a', toSimple('b'), 0, chosen, ['b'])).toBe('chosen'); // c missing
+    expect(choiceTag(linear, 'a', toSimple('b'), 0, chosen, ['b', 'c'])).toBe('all');
+  });
+
+  it("PRECEDENCE: a fully-visited subgraph does NOT mark an un-chosen option 'all'", () => {
+    // Everything behind the option is visited (via other paths), but it was never taken.
+    expect(choiceTag(linear, 'a', toSimple('b'), 0, new Set(), ['b', 'c'])).toBe('none');
+  });
+
+  it("check outcomes read from the recorded result: succeeded / failed / completed", () => {
+    const file = story([node('p', ''), node('q', '')]);
+    const check = toCheck('p', 'q');
+    const s = new Set([chosenKey('n', 0, 's')]);
+    const f = new Set([chosenKey('n', 0, 'f')]);
+    const both = new Set([chosenKey('n', 0, 's'), chosenKey('n', 0, 'f')]);
+    expect(choiceTag(file, 'n', check, 0, s, [])).toBe('succeeded');
+    expect(choiceTag(file, 'n', check, 0, f, [])).toBe('failed');
+    expect(choiceTag(file, 'n', check, 0, both, [])).toBe('completed');
+    expect(choiceTag(file, 'n', check, 0, new Set(), [])).toBe('none');
+  });
+
+  it("check 'all' needs both outcomes recorded AND both targets visited", () => {
+    const file = story([node('p', ''), node('q', '')]);
+    const check = toCheck('p', 'q');
+    const both = new Set([chosenKey('n', 0, 's'), chosenKey('n', 0, 'f')]);
+    expect(choiceTag(file, 'n', check, 0, both, ['p'])).toBe('completed'); // q unvisited
+    expect(choiceTag(file, 'n', check, 0, both, ['p', 'q'])).toBe('all');
+  });
+
+  it("check PRECEDENCE: only-succeeded stays 'succeeded' even if the whole subgraph is visited", () => {
+    const file = story([node('p', ''), node('q', '')]);
+    const check = toCheck('p', 'q');
+    const s = new Set([chosenKey('n', 0, 's')]);
+    expect(choiceTag(file, 'n', check, 0, s, ['p', 'q'])).toBe('succeeded');
+  });
+
+  it('terminates on a cycle', () => {
+    const cyclic = story([branch('a', 'b'), branch('b', 'a')]);
+    const chosen = new Set([chosenKey('x', 0)]);
+    expect(choiceTag(cyclic, 'x', toSimple('a'), 0, chosen, ['a', 'b'])).toBe('all');
+    expect(choiceTag(cyclic, 'x', toSimple('a'), 0, chosen, ['a'])).toBe('chosen');
   });
 });

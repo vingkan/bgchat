@@ -17,6 +17,7 @@ describe('useGame persistence', () => {
       currentId: 'truth',
       history: [],
       visited: ['gate', 'truth'],
+      chosen: [],
       rngState: 999,
     };
     saveGame(KEY, saved);
@@ -27,13 +28,13 @@ describe('useGame persistence', () => {
 
   it('persists committed progress on change', () => {
     const { result } = renderHook(() => useGame(sampleStory, 1, KEY));
-    act(() => result.current.chooseSimple(toTruth));
+    act(() => result.current.chooseSimple(toTruth, 0));
     expect(loadGame(KEY)?.currentId).toBe('truth');
   });
 
   it('reset() clears progress back to a fresh start baseline', () => {
     const { result } = renderHook(() => useGame(sampleStory, 1, KEY));
-    act(() => result.current.chooseSimple(toTruth));
+    act(() => result.current.chooseSimple(toTruth, 0));
     act(() => result.current.reset());
     expect(result.current.state.game.currentId).toBe('gate');
     expect(result.current.state.game.visited).toEqual(['gate']);
@@ -42,7 +43,7 @@ describe('useGame persistence', () => {
 
   it('does not touch storage without a storageKey', () => {
     const { result } = renderHook(() => useGame(sampleStory, 1));
-    act(() => result.current.chooseSimple(toTruth));
+    act(() => result.current.chooseSimple(toTruth, 0));
     expect(localStorage.length).toBe(0);
   });
 });

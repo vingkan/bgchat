@@ -27,6 +27,9 @@ function isGameState(v: unknown): v is GameState {
     Array.isArray(g.history) &&
     Array.isArray(g.visited) &&
     g.visited.every((id) => typeof id === 'string') &&
+    // `chosen` was added later — absent in older saves (initPlayer defaults it to []).
+    (g.chosen === undefined ||
+      (Array.isArray(g.chosen) && g.chosen.every((id) => typeof id === 'string'))) &&
     typeof g.rngState === 'number'
   );
 }

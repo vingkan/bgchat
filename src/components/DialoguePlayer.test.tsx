@@ -1,12 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { sampleStory } from '../story/sample';
 import { DialoguePlayer } from './DialoguePlayer';
 
-function setup() {
+function setup(props?: { storageKey?: string }) {
   const user = userEvent.setup();
-  render(<DialoguePlayer file={sampleStory} seed={1} />);
+  render(<DialoguePlayer file={sampleStory} seed={1} storageKey={props?.storageKey} />);
   return user;
 }
 
@@ -42,23 +42,91 @@ describe('DialoguePlayer', () => {
     expect(await screen.findByText(/State your business/i)).toBeInTheDocument();
   });
 
-  it('marks a branch "seen" after visiting and returning (replayability)', async () => {
+  // Helper: the choice <li> whose label matches, for scoping tag assertions to one option.
+  function choiceRow(label: RegExp) {
+    return screen.getByText(label).closest('.choice') as HTMLElement;
+  }
+
+  it('tags an option "Chosen" after it is clicked, and leaves untouched options untagged', async () => {
     const user = setup();
     await begin(user);
     await user.click(screen.getByText(/Tell him the truth/i));
     await screen.findByText(/Honesty buys you a step/i); // on the truth node
     await user.click(screen.getByRole('button', { name: /^back$/i }));
-    // Back on the gate, the truth branch we explored should now be marked.
-    expect(await screen.findByText('seen')).toBeInTheDocument();
+    await screen.findByText(/State your business/i); // back on the gate
+    // The truth option was clicked -> "Chosen". Its branch isn't fully explored yet.
+    const truth = choiceRow(/Tell him the truth/i);
+    expect(within(truth).getByText('Chosen')).toBeInTheDocument();
+    expect(within(truth).queryByText('Explored all paths')).not.toBeInTheDocument();
+    // A sibling option we never touched carries no tag (no cross-option bleed).
+    const persuade = choiceRow(/Convince him you mean no harm/i);
+    expect(within(persuade).queryByText('Chosen')).not.toBeInTheDocument();
   });
 
-  it('reaches the ending and offers Restart', async () => {
+  it('tags a check with its recorded outcome (Succeeded/Failed) after resolving and returning', async () => {
+    const user = setup();
+    await begin(user);
+    await user.click(screen.getByText(/Convince him you mean no harm/i));
+    const cont = await screen.findByRole('button', { name: /continue/i }, { timeout: 3000 });
+    await user.click(cont);
+    await screen.findByText(/(honest face, I'll give you that|Stand where I can see your hands)/i);
+    await user.click(screen.getByRole('button', { name: /^back$/i })); // -> gate
+    await screen.findByText(/State your business/i);
+    const persuade = choiceRow(/Convince him you mean no harm/i);
+    expect(within(persuade).getByText(/^(Succeeded|Failed)$/)).toBeInTheDocument();
+  });
+
+  it('upgrades an option to "Explored all paths" once it is chosen and its whole branch is visited', async () => {
+    const user = setup();
+    await begin(user);
+    await user.click(screen.getByText(/Tell him the truth/i)); // -> truth
+    await user.click(await screen.findByText(/Thank him and enter/i)); // -> enter (ending)
+    await screen.findByText('The End');
+    await user.click(screen.getByRole('button', { name: /^back$/i })); // -> truth
+    await screen.findByText(/Honesty buys you a step/i);
+    await user.click(screen.getByRole('button', { name: /^back$/i })); // -> gate
+    await screen.findByText(/State your business/i);
+    // The truth option is chosen AND its branch (truth -> enter) is fully visited.
+    const truth = choiceRow(/Tell him the truth/i);
+    expect(within(truth).getByText('Explored all paths')).toBeInTheDocument();
+  });
+
+  it('shows the control row (Back / Restart / Mute / Home) mid-story, not just at endings', async () => {
+    const user = setup();
+    await begin(user);
+    // Still on the opening node, mid-story.
+    expect(screen.getByText(/State your business/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^back$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /restart/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /unmute/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /home/i })).toBeInTheDocument();
+    // No persistence configured => no Reset option.
+    expect(screen.queryByRole('button', { name: /^reset$/i })).not.toBeInTheDocument();
+  });
+
+  it('offers Reset on every page when persistence is enabled', async () => {
+    const user = setup({ storageKey: 'DP-TEST' });
+    await begin(user);
+    // Mid-story: Reset is available immediately, not only at the ending.
+    expect(screen.getByRole('button', { name: /^reset$/i })).toBeInTheDocument();
+    await user.click(screen.getByText(/Tell him the truth/i));
+    await user.click(await screen.findByText(/Thank him and enter/i));
+    await screen.findByText('The End');
+    expect(screen.getByRole('button', { name: /^reset$/i })).toBeInTheDocument();
+    localStorage.clear();
+  });
+
+  it('Home returns to the key screen without losing progress', async () => {
     const user = setup();
     await begin(user);
     await user.click(screen.getByText(/Tell him the truth/i));
-    await user.click(await screen.findByText(/Thank him and enter/i));
-    expect(await screen.findByText('The End')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /restart/i })).toBeInTheDocument();
+    await screen.findByText(/Honesty buys you a step/i); // advanced one node
+    await user.click(screen.getByRole('button', { name: /home/i }));
+    // Back at the Begin gate (key entry).
+    expect(await screen.findByRole('button', { name: /begin/i })).toBeInTheDocument();
+    // Re-begin resumes exactly where we were (in-memory progress intact).
+    await begin(user);
+    expect(await screen.findByText(/Honesty buys you a step/i)).toBeInTheDocument();
   });
 
   it('runs a skill check: overlay -> Continue routes to a branch', async () => {

@@ -21,6 +21,7 @@
   background: #000;
   color: var(--white);
   font-family: var(--sans);
+  overflow: hidden;
 }
 
 /* Letterbox bars */
@@ -255,14 +256,24 @@
   margin-top: -2px;
   vertical-align: middle;
 }
+/* Fully-explored branch reads as the stronger state: gold text + filled gold dot. */
+.seen.all {
+  color: var(--accent);
+}
+.seen.all::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
 
 /* Controls */
 #controls {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 28px;
+  row-gap: 12px;
   margin-top: 22px;
-  height: 20px;
+  min-height: 20px;
 }
 .ctrl {
   background: none;
@@ -284,6 +295,13 @@
 .ctrl:disabled {
   color: rgba(245, 245, 245, 0.15);
   cursor: default;
+}
+/* Home is an icon pinned to the right end of the row. */
+.ctrl.home {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
 }
 
 /* End card */
@@ -337,28 +355,6 @@
 .continue:focus-visible {
   border-color: var(--accent);
   color: var(--accent);
-  outline: none;
-}
-
-/* Low-emphasis borderless button — sits quietly under Restart on the end card. */
-.ghost {
-  background: none;
-  border: none;
-  color: var(--white-dim);
-  font-family: var(--sans);
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  cursor: pointer;
-  padding: 4px 0;
-  align-self: flex-start;
-  opacity: 0.6;
-  transition: color 180ms ease, opacity 180ms ease;
-}
-.ghost:hover,
-.ghost:focus-visible {
-  color: var(--accent);
-  opacity: 1;
   outline: none;
 }
 

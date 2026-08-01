@@ -21,8 +21,8 @@ export interface PlayerState {
 }
 
 export type Action =
-  | { type: 'SIMPLE_CHOICE'; choice: SimpleChoice }
-  | { type: 'RESOLVE_CHECK'; choice: CheckChoice }
+  | { type: 'SIMPLE_CHOICE'; choice: SimpleChoice; index: number }
+  | { type: 'RESOLVE_CHECK'; choice: CheckChoice; index: number }
   | { type: 'CONTINUE' }
   | { type: 'BACK' }
   | { type: 'RESTART' }
@@ -36,7 +36,8 @@ export type Action =
 export function initPlayer(file: StoryFile, seed?: number, saved?: GameState | null): PlayerState {
   if (saved && saved.currentId in file.nodes) {
     const visited = saved.visited.filter((id) => id in file.nodes);
-    return { game: { ...saved, visited }, pending: null };
+    // `chosen` predates this field in older saves — default it so tags start empty.
+    return { game: { ...saved, visited, chosen: saved.chosen ?? [] }, pending: null };
   }
   return { game: createGame(file, seed), pending: null };
 }
@@ -45,11 +46,11 @@ export function reduce(file: StoryFile, state: PlayerState, action: Action): Pla
   switch (action.type) {
     case 'SIMPLE_CHOICE':
       if (state.pending) return state; // guard: no choosing mid-roll
-      return { game: chooseSimple(state.game, action.choice), pending: null };
+      return { game: chooseSimple(state.game, action.choice, action.index), pending: null };
 
     case 'RESOLVE_CHECK': {
       if (state.pending) return state; // double-click guard: one roll at a time
-      const { state: nextGame, roll } = resolveCheck(state.game, action.choice);
+      const { state: nextGame, roll } = resolveCheck(state.game, action.choice, action.index);
       return { game: state.game, pending: { roll, nextGame } };
     }
 

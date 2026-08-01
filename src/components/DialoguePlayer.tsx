@@ -1,8 +1,8 @@
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import type { Choice, StoryFile } from '../story/types';
-import { primaryTarget } from '../story/types';
 import { validateStory } from '../engine/validation';
+import { choiceTag } from '../engine/progress';
 import { useGame } from '../state/useGame';
 import { clearGame } from '../state/progressStore';
 import { BeginGate } from './BeginGate';
@@ -31,6 +31,7 @@ export function DialoguePlayer({
   storageKey,
   initialStarted = false,
   onBeginKey,
+  onHome,
 }: {
   file: StoryFile;
   seed?: number;
@@ -41,6 +42,8 @@ export function DialoguePlayer({
   // Begin gate reports the typed key; returns false for an unknown key so the
   // gate can show an error. When absent (e.g. unit tests), Begin always proceeds.
   onBeginKey?: (key: string) => boolean;
+  // Home button: let App tidy the URL. Progress is untouched (in-memory + localStorage).
+  onHome?: () => void;
 }) {
   const { state, node, chooseSimple, resolveCheck, cont, back, restart, reset } = useGame(
     file,
@@ -52,6 +55,7 @@ export function DialoguePlayer({
 
   const { pending } = state;
   const isEnd = node.choices.length === 0;
+  const chosen = new Set(state.game.chosen); // click history, for the per-choice tags
 
   // Dev-only guard: fail loudly on a broken story. Tree-shaken from prod.
   useEffect(() => {
@@ -61,7 +65,8 @@ export function DialoguePlayer({
   // Prefetch the clips this node's choices lead to, so transitions don't stall.
   useEffect(() => prefetchVideos(nextVideos(file, node.choices)), [file, node]);
 
-  const select = (c: Choice) => (c.kind === 'simple' ? chooseSimple(c) : resolveCheck(c));
+  const select = (c: Choice, index: number) =>
+    c.kind === 'simple' ? chooseSimple(c, index) : resolveCheck(c, index);
 
   // Number keys 1-4 select a choice (disabled during a roll or before Begin).
   useEffect(() => {
@@ -70,7 +75,7 @@ export function DialoguePlayer({
       const n = Number.parseInt(e.key, 10);
       if (n >= 1 && n <= node.choices.length) {
         e.preventDefault();
-        select(node.choices[n - 1]);
+        select(node.choices[n - 1], n - 1);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -102,51 +107,63 @@ export function DialoguePlayer({
               <div className="endcard">
                 <div className="end-rule" />
                 <div className="end-title">The End</div>
-                <button className="continue visible" onClick={restart}>
-                  Restart
-                </button>
-                {storageKey && (
-                  <button
-                    className="ghost"
-                    onClick={() => {
-                      clearGame(storageKey);
-                      reset();
-                    }}
-                  >
-                    Reset Progress
-                  </button>
-                )}
               </div>
             ) : (
-              <>
-                <ul className="choices">
-                  {node.choices.map((c, i) => (
-                    <ChoiceButton
-                      key={i}
-                      choice={c}
-                      index={i}
-                      seen={state.game.visited.includes(primaryTarget(c))}
-                      onSelect={() => select(c)}
-                    />
-                  ))}
-                </ul>
-                <div id="controls">
-                  <button
-                    className="ctrl"
-                    onClick={back}
-                    disabled={state.game.history.length === 0}
-                  >
-                    Back
-                  </button>
-                  <button className="ctrl" onClick={restart}>
-                    Restart
-                  </button>
-                  <button className="ctrl" onClick={() => setMuted((m) => !m)}>
-                    {muted ? 'Unmute' : 'Mute'}
-                  </button>
-                </div>
-              </>
+              <ul className="choices">
+                {node.choices.map((c, i) => (
+                  <ChoiceButton
+                    key={i}
+                    choice={c}
+                    index={i}
+                    tag={choiceTag(file, node.id, c, i, chosen, state.game.visited)}
+                    onSelect={() => select(c, i)}
+                  />
+                ))}
+              </ul>
             )}
+            {/* Shared control row — same quiet .ctrl style on every page. Reset shows
+                whenever progress is persisted; Home (right-aligned) returns to the key
+                screen without wiping progress. */}
+            <div id="controls">
+              <button className="ctrl" onClick={back} disabled={state.game.history.length === 0}>
+                Back
+              </button>
+              <button className="ctrl" onClick={restart}>
+                Restart
+              </button>
+              <button className="ctrl" onClick={() => setMuted((m) => !m)}>
+                {muted ? 'Unmute' : 'Mute'}
+              </button>
+              {storageKey && (
+                <button
+                  className="ctrl"
+                  onClick={() => {
+                    clearGame(storageKey);
+                    reset();
+                  }}
+                >
+                  Reset
+                </button>
+              )}
+              <button
+                className="ctrl home"
+                aria-label="Home"
+                onClick={() => {
+                  onHome?.();
+                  setStarted(false);
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M3 10.5 12 3l9 7.5M5.25 9v10.5h4.5V14h4.5v5.5h4.5V9"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
           </motion.div>
         </div>
       </div>

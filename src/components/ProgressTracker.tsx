@@ -56,7 +56,7 @@ export function ProgressTracker({ file, visited }: { file: StoryFile; visited: N
 
       <div className="progress-grp">
         <div className="progress-grp-head">
-          <span className="progress-lbl">Moments</span>
+          <span className="progress-lbl">Timelines</span>
           <Count unlocked={p.scenes.unlocked} total={p.scenes.total} />
         </div>
         <Bar unlocked={p.scenes.unlocked} total={p.scenes.total} flash={scenePulse} />

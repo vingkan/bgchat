@@ -29,11 +29,18 @@ export interface GameState {
   currentId: NodeId;
   history: HistoryEntry[];
   visited: NodeId[]; // MONOTONIC — never shrinks (survives rewind AND restart)
+  chosen: string[]; // MONOTONIC set of taken-option keys (see chosenKey); drives choice tags
   rngState: number; // current mulberry32 state; advances on each roll
 }
 
-function addVisited(visited: NodeId[], id: NodeId): NodeId[] {
-  return visited.includes(id) ? visited : [...visited, id];
+// Stable id for "this exact option (and, for a check, this outcome) was taken". Keyed by
+// node + choice index (index disambiguates two options that share a `next`), with an
+// outcome suffix for checks so success/failure/both are distinguishable.
+export const chosenKey = (nodeId: NodeId, index: number, outcome?: 's' | 'f'): string =>
+  outcome ? `${nodeId}#${index}:${outcome}` : `${nodeId}#${index}`;
+
+function addUnique(list: string[], id: string): string[] {
+  return list.includes(id) ? list : [...list, id];
 }
 
 // Start a brand-new game at the story's entry point.
@@ -42,6 +49,7 @@ export function createGame(file: StoryFile, seed: number = randomSeed()): GameSt
     currentId: file.start,
     history: [],
     visited: [file.start],
+    chosen: [],
     rngState: seed | 0,
   };
 }
@@ -52,13 +60,15 @@ export function restart(file: StoryFile, state: GameState, seed: number = random
   return {
     currentId: file.start,
     history: [],
-    visited: addVisited(state.visited, file.start),
+    visited: addUnique(state.visited, file.start),
+    chosen: state.chosen,
     rngState: seed | 0,
   };
 }
 
-// A plain transition. Does NOT advance the rng (no roll happened).
-export function chooseSimple(state: GameState, choice: SimpleChoice): GameState {
+// A plain transition. Does NOT advance the rng (no roll happened). `index` is the choice's
+// position in the current node, recorded so this exact option reads "Chosen".
+export function chooseSimple(state: GameState, choice: SimpleChoice, index: number): GameState {
   const entry: HistoryEntry = {
     nodeId: state.currentId,
     choice,
@@ -67,7 +77,8 @@ export function chooseSimple(state: GameState, choice: SimpleChoice): GameState 
   return {
     currentId: choice.next,
     history: [...state.history, entry],
-    visited: addVisited(state.visited, choice.next),
+    visited: addUnique(state.visited, choice.next),
+    chosen: addUnique(state.chosen, chosenKey(state.currentId, index)),
     rngState: state.rngState,
   };
 }
@@ -78,6 +89,7 @@ export function chooseSimple(state: GameState, choice: SimpleChoice): GameState 
 export function resolveCheck(
   state: GameState,
   choice: CheckChoice,
+  index: number,
 ): { state: GameState; roll: RollResult } {
   const { die, next } = rollD20(state.rngState);
   const modifier = choice.modifier ?? 0;
@@ -118,7 +130,8 @@ export function resolveCheck(
   const nextState: GameState = {
     currentId: dest,
     history: [...state.history, entry],
-    visited: addVisited(state.visited, dest),
+    visited: addUnique(state.visited, dest),
+    chosen: addUnique(state.chosen, chosenKey(state.currentId, index, success ? 's' : 'f')),
     rngState: next,
   };
 
@@ -138,6 +151,7 @@ export function rewind(state: GameState, steps = 1): GameState {
     currentId: undo.nodeId,
     history: state.history.slice(0, cut),
     visited: state.visited,
+    chosen: state.chosen, // MONOTONIC — a taken option stays recorded through a rewind
     rngState: state.rngState, // keep the generator advanced -> retry rolls a new die
   };
 }

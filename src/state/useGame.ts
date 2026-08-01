@@ -16,11 +16,11 @@ export function useGame(file: StoryFile, seed?: number, storageKey?: string) {
   );
 
   const chooseSimple = useCallback(
-    (choice: SimpleChoice) => dispatch({ type: 'SIMPLE_CHOICE', choice }),
+    (choice: SimpleChoice, index: number) => dispatch({ type: 'SIMPLE_CHOICE', choice, index }),
     [],
   );
   const resolveCheck = useCallback(
-    (choice: CheckChoice) => dispatch({ type: 'RESOLVE_CHECK', choice }),
+    (choice: CheckChoice, index: number) => dispatch({ type: 'RESOLVE_CHECK', choice, index }),
     [],
   );
   const cont = useCallback(() => dispatch({ type: 'CONTINUE' }), []);

@@ -59,6 +59,15 @@ function App() {
     return true;
   };
 
+  // Home returns to the key screen (the player flips its own `started` off). We only
+  // tidy the URL — drop ?key= so a reload also lands on the gate. Progress is untouched:
+  // the player stays mounted (in-memory state intact) and localStorage is not cleared.
+  const handleHome = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('key');
+    window.history.replaceState({}, '', url);
+  };
+
   // Key by story key (not story.start) so switching stories remounts the player
   // and resets engine state — TEST and LOVE both start at node "gate", so keying
   // by start would fail to reset between them.
@@ -70,6 +79,7 @@ function App() {
       storageKey={override ? undefined : storyKey}
       initialStarted={started}
       onBeginKey={handleBeginKey}
+      onHome={handleHome}
     />
   );
 }

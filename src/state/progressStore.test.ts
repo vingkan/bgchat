@@ -6,6 +6,7 @@ const sample: GameState = {
   currentId: 'truth',
   history: [],
   visited: ['gate', 'truth'],
+  chosen: ['gate#0'],
   rngState: 12345,
 };
 
@@ -36,6 +37,18 @@ describe('progressStore', () => {
 
   it('returns null for wrong-shaped data', () => {
     localStorage.setItem('bgchat-progress-v1:TEST', JSON.stringify({ currentId: 'x' }));
+    expect(loadGame('TEST')).toBeNull();
+  });
+
+  it('accepts an older save that predates the `chosen` field (backward-compat)', () => {
+    const legacy = { currentId: 'truth', history: [], visited: ['gate', 'truth'], rngState: 7 };
+    localStorage.setItem('bgchat-progress-v1:TEST', JSON.stringify(legacy));
+    expect(loadGame('TEST')).toEqual(legacy); // structurally valid; chosen defaulted downstream
+  });
+
+  it('rejects a save whose chosen is not a string array', () => {
+    const bad = { ...sample, chosen: [1, 2, 3] };
+    localStorage.setItem('bgchat-progress-v1:TEST', JSON.stringify(bad));
     expect(loadGame('TEST')).toBeNull();
   });
 
