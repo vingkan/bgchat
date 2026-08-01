@@ -2,7 +2,7 @@
    App.css so the prototypes read in the real Letterbox language. */
 
 .dice-lab {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: radial-gradient(120% 90% at 30% 20%, #1c2026 0%, #0d1013 45%, #050608 100%);
   color: var(--white);
   font-family: var(--sans);

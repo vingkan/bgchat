@@ -676,7 +676,7 @@ textarea.ed-choice-input {
 }
 .ed-abilities-body {
   padding: 8px 14px 14px;
-  max-height: 70vh;
+  max-height: 70dvh;
   overflow-y: auto;
 }
 .ed-ability-group {
@@ -741,7 +741,7 @@ textarea.ed-choice-input {
 }
 .ed-modal {
   width: min(680px, 92vw);
-  max-height: 86vh;
+  max-height: 86dvh;
   display: flex;
   flex-direction: column;
   background: var(--ed-panel);
