@@ -2,8 +2,9 @@ import { useEffect, useRef } from 'react';
 import { readNavPresses, type NavButton, type PressedState } from './gamepad';
 
 // Polls connected gamepads once per animation frame and fires `onPress` for each
-// button/stick edge, translated to a NavButton. Inert when `enabled` is false, when
-// no pad is connected, and in jsdom (which has no navigator.getGamepads).
+// button/stick edge, translated to a NavButton. Inert when `enabled` is false and in
+// jsdom (which has no navigator.getGamepads); with no pad connected each frame simply
+// reads nothing.
 export function useGamepad(enabled: boolean, onPress: (button: NavButton) => void) {
   // Keep the latest callback in a ref so the long-lived poll loop always calls the
   // freshest closure (current focus index, current game state) without re-subscribing.
@@ -26,27 +27,16 @@ export function useGamepad(enabled: boolean, onPress: (button: NavButton) => voi
       for (const p of presses) cbRef.current(p);
       raf = requestAnimationFrame(loop);
     };
-    const start = () => {
-      if (!raf) raf = requestAnimationFrame(loop);
-    };
-    const stop = () => {
-      if (raf) cancelAnimationFrame(raf);
-      raf = 0;
-      prev = {};
-    };
-    // Only run the loop while at least one pad is present, to spare the battery.
-    const onDisconnect = () => {
-      if (!getPads().some(Boolean)) stop();
-    };
 
-    window.addEventListener('gamepadconnected', start);
-    window.addEventListener('gamepaddisconnected', onDisconnect);
-    if (getPads().some(Boolean)) start(); // a pad may already be connected before mount
+    // Poll unconditionally while enabled — reading getPads() every frame. We deliberately
+    // do NOT gate the loop start on the `gamepadconnected` event: Chromium only delivers it
+    // after a button press while the document is focused, and an installed PWA window on
+    // macOS routinely never receives it, which left the loop dead there. `enabled` is already
+    // scoped to active gameplay screens, so a continuous rAF here costs nothing.
+    raf = requestAnimationFrame(loop);
 
     return () => {
-      stop();
-      window.removeEventListener('gamepadconnected', start);
-      window.removeEventListener('gamepaddisconnected', onDisconnect);
+      if (raf) cancelAnimationFrame(raf);
     };
   }, [enabled]);
 }
