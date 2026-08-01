@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useAnimate } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import type { RollResult } from '../engine/engine';
 import { useGamepad } from '../input/useGamepad';
+import { rumbleResult } from '../input/rumble';
 
 interface Props {
   roll: RollResult | null; // non-null => overlay is up, staged and animating
@@ -59,6 +60,9 @@ export function DiceRoll({ roll, onContinue }: Props) {
       clearInterval(flicker);
       setFace(roll.die);
       setRevealed(true);
+      // Physical feedback the instant the outcome is shown: a connected controller rumbles
+      // (distinct patterns for success vs failure). No-op without a pad. See input/rumble.ts.
+      rumbleResult(roll.success);
       // gold ring ripple on impact; retract the class so the next roll replays it.
       setFlash(true);
       ripple = setTimeout(() => setFlash(false), 620);
