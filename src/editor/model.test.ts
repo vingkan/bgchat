@@ -55,6 +55,21 @@ describe('toStoryFile skillModifiers', () => {
   });
 });
 
+describe('nudgeUnmute round-trip', () => {
+  it('preserves nudgeUnmute on export, and back through import', () => {
+    const node: EditorNode = { ...simpleNode(), nudgeUnmute: true };
+    const file = toStoryFile(stateWith(node));
+    expect(file.nodes.n1.nudgeUnmute).toBe(true);
+    // ...and it survives the trip back into the editor.
+    expect(fromStoryFile(file).nodes.n1.nudgeUnmute).toBe(true);
+  });
+
+  it('omits the field entirely when unset (keeps exports clean)', () => {
+    const file = toStoryFile(stateWith(simpleNode()));
+    expect('nudgeUnmute' in file.nodes.n1).toBe(false);
+  });
+});
+
 describe('fromStoryFile skillModifiers', () => {
   it('lets the table win over a modifier baked onto a check', () => {
     const file: StoryFile = {

@@ -88,6 +88,7 @@ export const loveStory: StoryFile = {
       "speaker": "Natalia",
       "text": "Hey Kishahnica, this is your good friend Natalia. I just wanted to say, you should really give my other friend Vinesh a chance!",
       "video": "/video/natalia-greeting.mp4",
+      "nudgeUnmute": true,
       "choices": [
         {
           "kind": "simple",

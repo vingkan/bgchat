@@ -311,6 +311,93 @@
   padding: 4px;
 }
 
+/* "Sound on" unmute nudge — a pulsing gold ring on the Unmute control, shown when
+   a node sets `nudgeUnmute` and sound is still off. Reuses the dice roll-ring motion
+   so the feedback vocabulary stays consistent. inline-block gives the wrapper a clean
+   box == button width for centering. */
+.unmute-wrap {
+  position: relative;
+  display: inline-block;
+}
+.unmute-wrap.nudging .ctrl {
+  color: var(--accent); /* the button glows gold while the nudge is active */
+}
+.unmute-nudge {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  margin-left: 0.11em;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.unmute-nudge .ring {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  opacity: 0;
+  animation: unmuteRing 2.6s ease-out infinite;
+  margin-left: -18px;
+}
+/* Second ring, offset half a cycle, for a continuous "sonar" pulse. */
+.unmute-nudge .ring.b {
+  animation-delay: 1.3s;
+}
+@keyframes unmuteRing {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3.4);
+  }
+}
+/* Caption tucked into the gap just above the button (below the divider hairline). */
+.unmute-nudge .cap {
+  position: absolute;
+  left: 50%;
+  bottom: 9px;
+  transform: translateX(calc(-50% - 1.5px));
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-variant-caps: small-caps;
+  white-space: nowrap;
+  animation: unmuteCap 2.6s ease-in-out infinite;
+}
+@keyframes unmuteCap {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+/* Respect reduced-motion: keep the affordance (gold ring + caption), drop the pulse. */
+@media (prefers-reduced-motion: reduce) {
+  .unmute-nudge .ring,
+  .unmute-nudge .cap {
+    animation: none;
+  }
+  .unmute-nudge .ring {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  .unmute-nudge .ring.b {
+    display: none;
+  }
+  .unmute-nudge .cap {
+    opacity: 1;
+  }
+}
+
 /* End card */
 .endcard {
   display: flex;

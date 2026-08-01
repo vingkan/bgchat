@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { sampleStory } from '../story/sample';
+import type { StoryFile } from '../story/types';
 import { DialoguePlayer } from './DialoguePlayer';
 
 function setup(props?: { storageKey?: string }) {
@@ -189,5 +190,50 @@ describe('DialoguePlayer', () => {
     await begin(user);
     await user.keyboard('1'); // first choice -> truth
     expect(await screen.findByText(/Honesty buys you a step/i)).toBeInTheDocument();
+  });
+});
+
+describe('DialoguePlayer — unmute nudge', () => {
+  // Node "a" opts into the nudge; node "b" doesn't, so we can prove it's per-node.
+  const nudgeStory: StoryFile = {
+    start: 'a',
+    nodes: {
+      a: {
+        id: 'a',
+        speaker: 'Ada',
+        text: 'Listen closely.',
+        video: '',
+        nudgeUnmute: true,
+        choices: [{ kind: 'simple', label: 'Go on', next: 'b' }],
+      },
+      b: { id: 'b', speaker: 'Ada', text: 'A quiet room.', video: '', choices: [] },
+    },
+  };
+
+  async function beginNudge() {
+    const user = userEvent.setup();
+    render(<DialoguePlayer file={nudgeStory} seed={1} />);
+    await user.click(screen.getByRole('button', { name: /begin/i }));
+    return user;
+  }
+
+  it('shows the "Sound on" nudge on a nudgeUnmute node while sound is off', async () => {
+    await beginNudge();
+    expect(screen.getByText(/sound on/i)).toBeInTheDocument();
+  });
+
+  it('the nudge disappears the moment the player unmutes', async () => {
+    const user = await beginNudge();
+    await user.click(screen.getByRole('button', { name: /unmute/i }));
+    expect(screen.queryByText(/sound on/i)).not.toBeInTheDocument();
+    // The control now offers Mute — sound is on, so there's nothing left to nudge.
+    expect(screen.getByRole('button', { name: /^mute$/i })).toBeInTheDocument();
+  });
+
+  it('does not nudge on a node that has not opted in', async () => {
+    const user = await beginNudge();
+    await user.click(screen.getByText(/Go on/i)); // -> node "b" (no nudgeUnmute)
+    await screen.findByText(/quiet room/i);
+    expect(screen.queryByText(/sound on/i)).not.toBeInTheDocument();
   });
 });

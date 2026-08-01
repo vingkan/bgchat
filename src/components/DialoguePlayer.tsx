@@ -235,9 +235,22 @@ export function DialoguePlayer({
               <button data-nav className="ctrl" onClick={restart}>
                 Restart
               </button>
-              <button data-nav className="ctrl" onClick={() => setMuted((m) => !m)}>
-                {muted ? 'Unmute' : 'Mute'}
-              </button>
+              {/* Unmute nudge: when a node opts in via `nudgeUnmute` AND sound is
+                  still off, a pulsing gold "Sound on" ring draws the eye to the
+                  Unmute control. Decorative (aria-hidden) — the button itself is the
+                  real, accessible affordance. Disappears the moment sound is on. */}
+              <span className={`unmute-wrap ${node.nudgeUnmute && muted ? 'nudging' : ''}`}>
+                {node.nudgeUnmute && muted && (
+                  <span className="unmute-nudge" aria-hidden="true">
+                    <span className="cap">Sound on</span>
+                    <span className="ring" />
+                    <span className="ring b" />
+                  </span>
+                )}
+                <button data-nav className="ctrl" onClick={() => setMuted((m) => !m)}>
+                  {muted ? 'Unmute' : 'Mute'}
+                </button>
+              </span>
               {storageKey && (
                 <button
                   data-nav

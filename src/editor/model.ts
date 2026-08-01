@@ -379,6 +379,9 @@ export function toStoryFile(state: EditorState): StoryFile {
       speaker: n.speaker,
       text: n.text,
       video: n.video,
+      // Not editable in the editor, but round-trips: keep it only when set so
+      // exports stay clean (fromStoryFile spreads it back in on import).
+      ...(n.nudgeUnmute ? { nudgeUnmute: true } : {}),
       choices: n.choices.map((c) => {
         if (c.kind === 'check') {
           const modifier = state.skillMods[c.skill] ?? 0;

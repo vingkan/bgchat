@@ -22,6 +22,11 @@ export interface DialogueNode {
   // validateStory only checks non-empty paths against real files on disk.
   video: string;
   choices: Choice[]; // empty array = terminal / ending node
+  // When true, and this node's audio matters, the player nudges the viewer to
+  // unmute on arrival (a pulsing "Sound on" ring on the footer Unmute control) —
+  // but only while sound is still off. Optional; absent/false means no nudge.
+  // Not editable in the story editor, but preserved across import/export.
+  nudgeUnmute?: boolean;
 }
 
 // A choice is one of two transition types (discriminated union on `kind`).
