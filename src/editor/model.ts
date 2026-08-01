@@ -94,11 +94,18 @@ export function scoresForMod(mod: number): string {
 // The clips available under public/video/. "" means "no clip" (ambient placeholder).
 
 export const VIDEOS: string[] = [
-  '/video/considering.mp4',
-  '/video/gesticulating.mp4',
-  '/video/opening.mp4',
-  '/video/pointing.mp4',
-  '/video/wagging.mp4',
+  '/video/bumi-attacking.mp4',
+  '/video/bumi-laying.mp4',
+  '/video/natalia-greeting.mp4',
+  '/video/default-looping.webm',
+  '/video/vinesh-asking.mp4',
+  '/video/vinesh-knocking.mp4',
+  '/video/vinesh-laughing.mp4',
+  '/video/vinesh-offering.mp4',
+  '/video/vinesh-talking.mp4',
+  '/video/vinesh-thinking.mp4',
+  '/video/vinesh-waving.mp4',
+  '/video/yamo-looping.mp4',
 ];
 
 // ─── Editor state ────────────────────────────────────────────────────────────

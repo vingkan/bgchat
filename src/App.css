@@ -565,20 +565,41 @@
   background: rgba(245, 245, 245, 0.05);
 }
 
-/* Progress tracker — the "Quiet Ledger" HUD, top-right during play. Discreet by
-   default (dimmed), brightening when the player looks at the frame. */
+/* Progress tracker — the "Quiet Ledger" HUD, top-right during play. */
 .progress {
   position: absolute;
   top: 16px;
   right: 16px;
   z-index: 20;
   width: 180px;
-  opacity: 0.6;
-  transition: opacity 0.25s;
   pointer-events: none; /* purely informational — never eats a click */
 }
-#stage:hover .progress {
-  opacity: 1;
+/* Corner scrim: an ellipse centred on the screen's top-right corner, so only its
+   bottom-left quadrant is on screen — darkest at the corner, fading down and to
+   the left across the tracker and out into the frame. Many stops keep the falloff
+   smooth (no visible banding or oval edge); the peak is kept low so it stays
+   subtle while still lifting the text off a bright frame. Same feathered-backing
+   idea as #lower for the bottom dialogue. */
+.progress::before {
+  content: '';
+  position: absolute;
+  z-index: -1; /* behind the text/bars, still above the frame */
+  top: -16px; /* box top-right sits exactly at the screen corner … */
+  right: -16px;
+  bottom: -380px; /* … and extends far down-left for a gradual fade */
+  left: -340px;
+  background: radial-gradient(
+    100% 100% at 100% 0%,
+    rgba(0, 0, 0, 0.68) 0%,
+    rgba(0, 0, 0, 0.62) 12%,
+    rgba(0, 0, 0, 0.56) 24%,
+    rgba(0, 0, 0, 0.48) 37%,
+    rgba(0, 0, 0, 0.37) 50%,
+    rgba(0, 0, 0, 0.26) 64%,
+    rgba(0, 0, 0, 0.17) 80%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  pointer-events: none;
 }
 .progress-head {
   font-weight: 200;
@@ -621,7 +642,8 @@
   color: var(--white-faint);
 }
 
-/* Segmented (sprocket) bar: dark track, gold fill, film-perforation notches. */
+/* Solid bar: dark track, gold fill. (No sprocket notches — the transparent gaps
+   couldn't be trusted to read against an arbitrary frame behind them.) */
 .progress-bar {
   position: relative;
   height: 4px;
@@ -637,17 +659,6 @@
   background: var(--accent);
   border-radius: 2px;
   transition: width 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-.progress-bar::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    90deg,
-    transparent 0 9px,
-    rgba(0, 0, 0, 0.65) 9px 11px
-  );
-  pointer-events: none;
 }
 
 /* Diamond pips (characters, ≤ DIAMOND_LIMIT unique speakers). */

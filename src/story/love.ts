@@ -7,7 +7,7 @@ export const loveStory: StoryFile = {
       id: 'gate',
       speaker: 'Gate Warden Aldric',
       text: "Halt. The city's closed after dark, and you don't look like anyone I'm meant to let through. State your business.",
-      video: '/video/considering.mp4',
+      video: '/video/vinesh-waving.mp4',
       choices: [
         { kind: 'simple', label: 'Tell him the truth. You seek the archivist.', next: 'truth' },
         {
