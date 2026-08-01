@@ -6,7 +6,7 @@
 //   scenes     — how many distinct nodes the player has visited, out of all nodes.
 //   characters — how many distinct speakers the player has met, out of all speakers.
 // A speaker is a trimmed, non-empty `node.speaker`; blank/narrator lines don't
-// count toward the character total (the read UI shows them as "Unnamed speaker").
+// count toward the character total (the read UI shows them as "Unnamed character").
 
 import type { Choice, NodeId, StoryFile } from '../story/types';
 import { choiceTargets } from '../story/types';

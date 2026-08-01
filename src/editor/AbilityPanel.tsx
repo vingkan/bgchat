@@ -1,4 +1,4 @@
-import { MODIFIER_TABLE, SKILL_GROUPS, scoresForMod, type Action } from './model';
+import { MODIFIER_TABLE, SKILL_GROUPS, type Action } from './model';
 
 interface Props {
   skillMods: Record<string, number>;
@@ -14,7 +14,7 @@ export function AbilityPanel({ skillMods, dispatch, onClose }: Props) {
   return (
     <div className="ed-abilities">
       <div className="ed-abilities-head">
-        <span>Skill modifiers</span>
+        <span>Skill Modifiers</span>
         <button className="ed-x" onClick={onClose} aria-label="Close">
           ×
         </button>
@@ -41,7 +41,6 @@ export function AbilityPanel({ skillMods, dispatch, onClose }: Props) {
                       </option>
                     ))}
                   </select>
-                  <span className="ed-mod-scores">score {scoresForMod(mod)}</span>
                 </div>
               );
             })}

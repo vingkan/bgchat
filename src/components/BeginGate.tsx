@@ -22,7 +22,7 @@ export function BeginGate({ onBegin }: Props) {
     <div className="begin-gate">
       <div className="begin-inner">
         <div className="end-rule" />
-        <h1 className="begin-title">bgchat</h1>
+        <h1 className="begin-title">Story</h1>
         <p className="begin-sub">Your words, and the dice, decide.</p>
         <input
           className="begin-key"
@@ -30,8 +30,8 @@ export function BeginGate({ onBegin }: Props) {
           value={key}
           maxLength={8}
           autoFocus
-          placeholder="Story key"
-          aria-label="Story key"
+          placeholder="Story code"
+          aria-label="Story code"
           spellCheck={false}
           autoCapitalize="characters"
           onChange={(e) => {
@@ -47,7 +47,7 @@ export function BeginGate({ onBegin }: Props) {
         />
         {error && (
           <p className="begin-error" role="alert">
-            No story with that key.
+            No story with that code.
           </p>
         )}
         <button className="continue visible" onClick={submit}>
@@ -55,7 +55,7 @@ export function BeginGate({ onBegin }: Props) {
         </button>
       </div>
       <a className="editor-link" href="?editor">
-        Story editor ✎
+        Story Editor ✎
       </a>
     </div>
   );

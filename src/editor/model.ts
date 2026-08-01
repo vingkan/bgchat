@@ -87,10 +87,6 @@ export const MODIFIER_TABLE: { mod: number; scores: string }[] = [
   { mod: 10, scores: '30' },
 ];
 
-export function scoresForMod(mod: number): string {
-  return MODIFIER_TABLE.find((m) => m.mod === mod)?.scores ?? '';
-}
-
 // ─── Video registry ──────────────────────────────────────────────────────────
 // The clips available under public/video/. "" means "no clip" (ambient placeholder).
 
@@ -144,11 +140,11 @@ export function initialState(): EditorState {
   };
 }
 
-// A fresh unique id like "node_1", "node_2", ...
+// A fresh unique id like "moment_1", "moment_2", ...
 function freshId(nodes: Record<NodeId, EditorNode>): NodeId {
   let n = Object.keys(nodes).length + 1;
-  while (nodes[`node_${n}`]) n += 1;
-  return `node_${n}`;
+  while (nodes[`moment_${n}`]) n += 1;
+  return `moment_${n}`;
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────

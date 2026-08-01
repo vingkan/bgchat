@@ -316,8 +316,8 @@ export function EditorPage() {
   return (
     <div className="ed-root">
       <header className="ed-toolbar">
-        <span className="ed-brand">bgchat · story editor</span>
-        <button onClick={addNode}>+ Node</button>
+        <span className="ed-brand">Story Editor</span>
+        <button onClick={addNode}>+ Moment</button>
         <button className={showAbilities ? 'on' : ''} onClick={() => setShowAbilities((s) => !s)}>
           Abilities
         </button>
@@ -373,7 +373,7 @@ export function EditorPage() {
         {state.order.length === 0 && (
           <div className="ed-empty">
             <p>Empty canvas.</p>
-            <p>Hit “+ Node” to drop your first beat. Drag a choice’s handle onto another node to wire it up.</p>
+            <p>Hit "+ Moment" to drop your first beat. Drag a choice's handle onto another moment to wire it up.</p>
           </div>
         )}
 

@@ -95,7 +95,7 @@ function ReadBody({
     <>
       <div className="ed-node-meta">
         {node.video ? <Thumb src={node.video} /> : <span className="ed-novid">no clip</span>}
-        <span className="ed-speaker-ro">{node.speaker || 'Unnamed speaker'}</span>
+        <span className="ed-speaker-ro">{node.speaker || 'Unnamed character'}</span>
       </div>
       <p className="ed-text-ro">{node.text || <span className="ed-dim">(no line yet)</span>}</p>
       <ul className="ed-choices">
@@ -141,7 +141,7 @@ function EditBody({ node, dispatch }: { node: EditorNode; dispatch: (a: Action) 
       </div>
 
       <label className="ed-field">
-        <span>Speaker</span>
+        <span>Character</span>
         <input
           className="ed-speaker"
           value={node.speaker}
@@ -155,7 +155,7 @@ function EditBody({ node, dispatch }: { node: EditorNode; dispatch: (a: Action) 
         <textarea
           className="ed-textarea"
           value={node.text}
-          placeholder="What the speaker says…"
+          placeholder="What the character says..."
           rows={3}
           onChange={(e) => dispatch({ type: 'patchNode', id: node.id, patch: { text: e.target.value } })}
         />
