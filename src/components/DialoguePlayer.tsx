@@ -7,6 +7,7 @@ import { useGame } from '../state/useGame';
 import { BeginGate } from './BeginGate';
 import { ChoiceButton } from './ChoiceButton';
 import { DiceRoll } from './DiceRoll';
+import { ProgressTracker } from './ProgressTracker';
 import { VideoStage } from './VideoStage';
 import { prefetchVideos } from './video';
 
@@ -131,6 +132,8 @@ export function DialoguePlayer({
         </div>
       </div>
       {/* <div className="bar bottom" /> */}
+
+      {started && <ProgressTracker file={file} visited={state.game.visited} />}
 
       <DiceRoll roll={pending?.roll ?? null} onContinue={cont} />
       {!started && (

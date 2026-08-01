@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bgchat — progress tracker prototypes</title>
+<style>
+  /* Tokens lifted from src/App.css:5-13 so the trackers are judged in-context. */
+  :root {
+    --white: #f5f5f5;
+    --white-dim: rgba(245, 245, 245, 0.55);
+    --white-faint: rgba(245, 245, 245, 0.28);
+    --locked: rgba(245, 245, 245, 0.12);
+    --accent: #c9b68a; /* gold */
+    --accent-soft: rgba(201, 182, 138, 0.4);
+    --sans: system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #000;
+    color: var(--white);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    padding: 28px 24px 140px;
+  }
+
+  .page-head { max-width: 1200px; margin: 0 auto 22px; }
+  .page-head h1 {
+    font-weight: 200;
+    font-variant-caps: small-caps;
+    letter-spacing: 0.24em;
+    text-transform: lowercase;
+    font-size: 20px;
+    margin: 0 0 6px;
+  }
+  .page-head p {
+    margin: 0;
+    color: var(--white-dim);
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    max-width: 720px;
+    line-height: 1.5;
+  }
+
+  /* ---- comparison board: three mock stages side by side ---- */
+  .board {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 1000px) { .board { grid-template-columns: 1fr; } }
+
+  .cell { min-width: 0; }
+  .cell-cap {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0 2px 8px;
+  }
+  .cell-cap .tag {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    border: 1px solid var(--accent-soft);
+    border-radius: 2px;
+    padding: 2px 6px;
+    text-transform: uppercase;
+  }
+  .cell-cap .name {
+    font-size: 13px;
+    color: var(--white-dim);
+    letter-spacing: 0.04em;
+  }
+
+  /* the mock play screen */
+  .stage {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    background:
+      radial-gradient(120% 90% at 50% 30%, #101014 0%, #050506 60%, #020203 100%);
+    border: 1px solid rgba(245, 245, 245, 0.06);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .letterbox { position: absolute; left: 0; right: 0; height: 9%; background: #000; z-index: 1; }
+  .letterbox.top { top: 0; }
+  .letterbox.bottom { bottom: 0; }
+
+  .mock-lower {
+    position: absolute;
+    left: 22px; right: 22px; bottom: 15%;
+    z-index: 2;
+    opacity: 0.5;
+  }
+  .mock-speaker {
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .mock-line {
+    font-weight: 200;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--white);
+    margin-bottom: 10px;
+  }
+  .mock-choice {
+    font-size: 12px;
+    color: var(--white-dim);
+    border-bottom: 1px solid var(--white-faint);
+    display: inline-block;
+    padding-bottom: 2px;
+    margin-right: 14px;
+  }
+
+  /* corner where every tracker mounts (mirrors .video-label top-left offsets) */
+  .corner {
+    position: absolute;
+    top: 16px; right: 16px;
+    z-index: 20;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* shared primitives ------------------------------------------------ */
+  .lbl {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--white-dim);
+  }
+  .count { font-variant-numeric: tabular-nums; font-size: 11px; letter-spacing: 0.06em; }
+  .count .num { color: var(--white); }
+  .count .den { color: var(--white-faint); }
+
+  .headline {
+    font-weight: 200;
+    font-variant-caps: small-caps;
+    letter-spacing: 0.14em;
+    font-size: 15px;
+    color: var(--accent);
+  }
+  .headline .pct { font-variant-numeric: tabular-nums; }
+
+  .grp-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 5px;
+  }
+
+  .bar {
+    position: relative;
+    height: 4px;
+    background: var(--locked);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .bar > .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.45s cubic-bezier(.2,.7,.2,1);
+  }
+  /* sprocket notches for direction B */
+  .bar.sprocket::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(90deg,
+      transparent 0 9px, rgba(0,0,0,0.65) 9px 11px);
+    pointer-events: none;
+  }
+
+  /* diamond pips (characters, ≤6 case) */
+  .pips { display: flex; gap: 3px; }
+  .pip { font-size: 11px; line-height: 1; color: var(--locked); }
+  .pip.on { color: var(--accent); }
+
+  /* unlock pulse + count tick (freshly-built element animates on creation) */
+  @keyframes flashGlow {
+    0% { filter: drop-shadow(0 0 0 rgba(201,182,138,0)); }
+    30% { filter: drop-shadow(0 0 6px rgba(201,182,138,0.9)); }
+    100% { filter: drop-shadow(0 0 0 rgba(201,182,138,0)); }
+  }
+  @keyframes tick {
+    0% { transform: scale(1); color: var(--accent); }
+    35% { transform: scale(1.35); }
+    100% { transform: scale(1); }
+  }
+  .flash .fill,
+  .flash .pips,
+  .flash .bar { animation: flashGlow 0.7s ease-out; }
+  .flash .num { display: inline-block; animation: tick 0.6s ease-out; }
+
+  /* 100% complete celebration */
+  .complete .fill { background: var(--accent); box-shadow: 0 0 8px rgba(201,182,138,0.8); }
+  .complete .pip.on { text-shadow: 0 0 6px rgba(201,182,138,0.9); }
+  .complete .bar { box-shadow: 0 0 0 1px var(--accent-soft); }
+
+  /* ===== Direction A — Quiet Ledger (now with % header + stacked rows) ==== */
+  .dirA { width: 180px; opacity: 0.6; transition: opacity 0.25s; }
+  .stage:hover .dirA { opacity: 1; }
+  .dirA .headline { text-align: left; font-size: 14px; margin-bottom: 11px; }
+  .dirA .grp { margin-bottom: 10px; }
+  .dirA .grp:last-child { margin-bottom: 0; }
+  .dirA .bar { width: 100%; }
+  .dirA .pips { justify-content: flex-start; }
+
+  /* ===== Direction B — Collector's Panel ========================== */
+  .dirB {
+    width: 190px;
+    background: rgba(3, 3, 4, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid var(--accent-soft);
+    border-radius: 3px;
+    padding: 11px 12px;
+  }
+  .dirB .grp { margin-bottom: 11px; }
+  .dirB .grp:last-child { margin-bottom: 0; }
+  .dirB .bar { width: 100%; }
+  .dirB .pips { gap: 4px; }
+  .dirB .pip { font-size: 12px; }
+
+  /* ===== Direction C — Hover-Expand Dock ========================== */
+  .dirC { position: relative; }
+  .dirC .collapsed {
+    display: flex; flex-direction: column; gap: 5px; align-items: flex-end;
+    transition: opacity 0.2s;
+  }
+  .dirC .collapsed .bar { width: 64px; }
+  .dirC .collapsed .pips .pip { font-size: 8px; }
+  .dirC .expanded {
+    position: absolute; top: -8px; right: -8px;
+    width: 194px;
+    background: rgba(3, 3, 4, 0.72);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid var(--accent-soft);
+    border-radius: 3px;
+    padding: 12px;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .dirC:hover .collapsed, .dirC:focus-within .collapsed { opacity: 0; }
+  .dirC:hover .expanded, .dirC:focus-within .expanded {
+    opacity: 1; transform: translateY(0); pointer-events: auto;
+  }
+  .dirC .headline { margin-bottom: 10px; }
+  .dirC .grp { margin-bottom: 10px; }
+  .dirC .grp:last-child { margin-bottom: 0; }
+  .dirC .expanded .bar { width: 100%; }
+
+  /* ---- dev control bar (clearly separated from the designs) ---- */
+  .controls {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 100;
+    background: #0c0c0e;
+    border-top: 1px solid rgba(245, 245, 245, 0.1);
+    padding: 14px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+  }
+  .controls .ctitle {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--white-faint); margin-right: 6px;
+  }
+  .controls button {
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--white);
+    background: rgba(245, 245, 245, 0.04);
+    border: 1px solid var(--white-faint);
+    border-radius: 6px;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .controls button:hover { border-color: var(--accent); background: rgba(201,182,138,0.08); }
+  .controls button:disabled { opacity: 0.35; cursor: default; }
+  .controls .readout {
+    font-variant-numeric: tabular-nums;
+    font-size: 12px; color: var(--white-dim); margin-left: auto;
+    letter-spacing: 0.04em;
+  }
+  .controls .sep { width: 1px; height: 22px; background: rgba(245,245,245,0.12); }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>bgchat progress tracker</h1>
+    <p>Three directions for the top-right explored-progress HUD, rendered on a mock play
+       screen. Scenes are always a bar; characters show diamonds when ≤10 speakers, a bar
+       when >10. Use the controls at the bottom to simulate unlocking and flip the character
+       rendering.</p>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="controls">
+    <span class="ctitle">Simulate</span>
+    <button id="btnScene">Explore next scene ›</button>
+    <button id="btnChar">Meet a character ›</button>
+    <span class="sep"></span>
+    <button id="btnCharMode">Characters: <span id="charModeLabel">diamonds (5)</span></button>
+    <button id="btnFillScenes">Fill scenes → 100%</button>
+    <span class="sep"></span>
+    <button id="btnReset">Reset</button>
+    <span class="readout" id="readout"></span>
+  </div>
+
+<script>
+  const state = {
+    scenesTotal: 23,
+    scenesOn: 6,
+    charMode: 'diamonds',       // 'diamonds' (≤10 speakers) or 'bar' (>10 speakers)
+    charIconTotal: 5,           // total unique speakers in the diamonds path (≤10)
+    charBarTotal: 12,           // total unique speakers in the bar path (>10)
+    charOn: 2,
+  };
+
+  const charTotal = () => state.charMode === 'diamonds' ? state.charIconTotal : state.charBarTotal;
+  const pct = (on, total) => total ? Math.round((on / total) * 100) : 0;
+  const overallPct = () =>
+    pct(state.scenesOn + Math.min(state.charOn, charTotal()), state.scenesTotal + charTotal());
+
+  // flash flags: which indicator just unlocked, so the fresh markup carries `.flash`
+  let flash = { A: null, B: null, C: null }; // 'scene' | 'char' | null (mirrored per stage)
+
+  function scenesInner(dir, flashKind) {
+    const { scenesOn, scenesTotal } = state;
+    const w = pct(scenesOn, scenesTotal);
+    const done = scenesOn >= scenesTotal ? ' complete' : '';
+    const fl = flashKind === 'scene' ? ' flash' : '';
+    return `<div class="bar sprocket${done}${fl}"><div class="fill" style="width:${w}%"></div></div>`;
+  }
+  function scenesCount() {
+    return `<span class="count"><span class="num">${state.scenesOn}</span>
+      <span class="den">/ ${state.scenesTotal}</span></span>`;
+  }
+
+  function charInner(dir, flashKind) {
+    const total = charTotal();
+    const on = Math.min(state.charOn, total);
+    const done = on >= total ? ' complete' : '';
+    const fl = flashKind === 'char' ? ' flash' : '';
+    if (state.charMode === 'diamonds') {
+      let pips = '';
+      for (let i = 0; i < total; i++) pips += `<span class="pip ${i < on ? 'on' : ''}">◆</span>`;
+      return `<div class="pips-wrap${done}${fl}"><div class="pips">${pips}</div></div>`;
+    }
+    const w = pct(on, total);
+    return `<div class="bar sprocket${done}${fl}"><div class="fill" style="width:${w}%"></div></div>`;
+  }
+  function charCount() {
+    const total = charTotal();
+    const on = Math.min(state.charOn, total);
+    return `<span class="count"><span class="num">${on}</span>
+      <span class="den">/ ${total}</span></span>`;
+  }
+
+  const header = () => `<div class="headline">explored <span class="pct">${overallPct()}%</span></div>`;
+
+  // ---- Direction A: Quiet Ledger (boxless, % header, name + n/total above bar) ----
+  function renderA() {
+    const f = flash.A;
+    return `<div class="dirA">
+      ${header()}
+      <div class="grp">
+        <div class="grp-head"><span class="lbl">Scenes</span>${scenesCount()}</div>
+        ${scenesInner('A', f)}
+      </div>
+      <div class="grp">
+        <div class="grp-head"><span class="lbl">Characters</span>${charCount()}</div>
+        ${charInner('A', f)}
+      </div>
+    </div>`;
+  }
+
+  // ---- Direction B: Collector's Panel ----
+  function renderB() {
+    const f = flash.B;
+    return `<div class="dirB">
+      <div class="grp">
+        <div class="grp-head"><span class="lbl">Scenes</span>${scenesCount()}</div>
+        ${scenesInner('B', f)}
+      </div>
+      <div class="grp">
+        <div class="grp-head"><span class="lbl">Characters</span>${charCount()}</div>
+        ${charInner('B', f)}
+      </div>
+    </div>`;
+  }
+
+  // ---- Direction C: Hover-Expand Dock ----
+  function renderC() {
+    const f = flash.C;
+    return `<div class="dirC" tabindex="0">
+      <div class="collapsed">
+        ${scenesInner('C', f)}
+        ${state.charMode === 'diamonds' ? charInner('C', f)
+          : `<div style="width:64px">${charInner('C', f)}</div>`}
+      </div>
+      <div class="expanded">
+        ${header()}
+        <div class="grp">
+          <div class="grp-head"><span class="lbl">Scenes</span>${scenesCount()}</div>
+          ${scenesInner('C', f)}
+        </div>
+        <div class="grp">
+          <div class="grp-head"><span class="lbl">Characters</span>${charCount()}</div>
+          ${charInner('C', f)}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const dirs = [
+    { key: 'A', name: 'Quiet Ledger', render: renderA },
+    { key: 'B', name: "Collector's Panel", render: renderB },
+    { key: 'C', name: 'Hover-Expand Dock', render: renderC },
+  ];
+
+  const mockStage = (inner) => `
+    <div class="stage">
+      <div class="letterbox top"></div>
+      <div class="letterbox bottom"></div>
+      <div class="corner">${inner}</div>
+      <div class="mock-lower">
+        <div class="mock-speaker">Warden</div>
+        <div class="mock-line">You've walked further than most. The gate ahead won't open twice.</div>
+        <div>
+          <span class="mock-choice">Press on</span>
+          <span class="mock-choice">Turn back</span>
+        </div>
+      </div>
+    </div>`;
+
+  function render() {
+    const board = document.getElementById('board');
+    board.innerHTML = dirs.map(d => `
+      <div class="cell">
+        <div class="cell-cap"><span class="tag">${d.key}</span><span class="name">${d.name}</span></div>
+        ${mockStage(d.render())}
+      </div>`).join('');
+    // clear flash after this paint so it only fires once
+    flash = { A: null, B: null, C: null };
+
+    // controls state
+    document.getElementById('btnScene').disabled = state.scenesOn >= state.scenesTotal;
+    document.getElementById('btnChar').disabled = state.charOn >= charTotal();
+    document.getElementById('charModeLabel').textContent =
+      state.charMode === 'diamonds' ? 'diamonds (5)' : 'bar (12)';
+    document.getElementById('readout').textContent =
+      `scenes ${state.scenesOn}/${state.scenesTotal}  ·  characters ${Math.min(state.charOn, charTotal())}/${charTotal()}  ·  ${state.charMode}`;
+  }
+
+  function setFlash(kind) { flash = { A: kind, B: kind, C: kind }; }
+
+  document.getElementById('btnScene').onclick = () => {
+    if (state.scenesOn < state.scenesTotal) { state.scenesOn++; setFlash('scene'); render(); }
+  };
+  document.getElementById('btnChar').onclick = () => {
+    if (state.charOn < charTotal()) { state.charOn++; setFlash('char'); render(); }
+  };
+  document.getElementById('btnCharMode').onclick = () => {
+    state.charMode = state.charMode === 'diamonds' ? 'bar' : 'diamonds';
+    state.charOn = Math.min(state.charOn, charTotal());
+    render();
+  };
+  document.getElementById('btnFillScenes').onclick = () => {
+    state.scenesOn = state.scenesTotal; setFlash('scene'); render();
+  };
+  document.getElementById('btnReset').onclick = () => {
+    state.scenesOn = 6; state.charOn = 2; state.charMode = 'diamonds'; render();
+  };
+
+  render();
+</script>
+</body>
+</html>
