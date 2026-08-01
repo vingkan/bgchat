@@ -92,12 +92,12 @@ export const loveStory: StoryFile = {
         {
           "kind": "simple",
           "label": "Sorry, I was so busy! Let me text him back.",
-          "next": "Intro"
+          "next": "GiftStateBack"
         },
         {
           "kind": "simple",
           "label": "Tell him to suggest a date!",
-          "next": "Suggestion"
+          "next": "GiftStateSuggest"
         }
       ]
     },
@@ -439,12 +439,12 @@ export const loveStory: StoryFile = {
         {
           "kind": "simple",
           "label": "Holy shit!",
-          "next": "SaturdayAsk"
+          "next": "GiftGlobalYamo"
         },
         {
           "kind": "simple",
           "label": "I want to go to there.",
-          "next": "SaturdayAsk"
+          "next": "GiftGlobalYamo"
         }
       ]
     },
@@ -493,7 +493,7 @@ export const loveStory: StoryFile = {
         {
           "kind": "simple",
           "label": "Yeah! 2pm sounds great!",
-          "next": "End"
+          "next": "GiftCountryTime"
         },
         {
           "kind": "check",
@@ -591,17 +591,17 @@ export const loveStory: StoryFile = {
         {
           "kind": "simple",
           "label": "Good girl, Bumi!",
-          "next": "End"
+          "next": "GiftStayBumi"
         },
         {
           "kind": "simple",
           "label": "I love you, Bumi!",
-          "next": "End"
+          "next": "GiftStayBumi"
         },
         {
           "kind": "simple",
           "label": "You're so cute, Bumi!",
-          "next": "End"
+          "next": "GiftStayBumi"
         }
       ]
     },
@@ -614,17 +614,17 @@ export const loveStory: StoryFile = {
         {
           "kind": "simple",
           "label": "Good girl, Bumi!",
-          "next": "End"
+          "next": "GiftStayBumi"
         },
         {
           "kind": "simple",
           "label": "I love you, Bumi!",
-          "next": "End"
+          "next": "GiftStayBumi"
         },
         {
           "kind": "simple",
           "label": "You're so cute, Bumi!",
-          "next": "End"
+          "next": "GiftStayBumi"
         }
       ]
     },
@@ -637,17 +637,17 @@ export const loveStory: StoryFile = {
         {
           "kind": "simple",
           "label": "Good girl, Bumi!",
-          "next": "End"
+          "next": "GiftStayBumi"
         },
         {
           "kind": "simple",
           "label": "I love you, Bumi!",
-          "next": "End"
+          "next": "GiftStayBumi"
         },
         {
           "kind": "simple",
           "label": "You're so cute, Bumi!",
-          "next": "End"
+          "next": "GiftStayBumi"
         }
       ]
     },
@@ -660,12 +660,12 @@ export const loveStory: StoryFile = {
         {
           "kind": "simple",
           "label": "See you there! At 7am.",
-          "next": "End"
+          "next": "GiftCountryTime"
         },
         {
           "kind": "simple",
           "label": "Just kidding, let's do 2pm.",
-          "next": "End"
+          "next": "GiftCountryTime"
         }
       ]
     },
@@ -678,12 +678,12 @@ export const loveStory: StoryFile = {
         {
           "kind": "simple",
           "label": "Yeah you already know me. See you then :).",
-          "next": "End"
+          "next": "GiftCountryTime"
         },
         {
           "kind": "simple",
           "label": "Oh good, you're also a night owl.",
-          "next": "End"
+          "next": "GiftCountryTime"
         }
       ]
     },
@@ -708,6 +708,71 @@ export const loveStory: StoryFile = {
           "modifier": -2,
           "onSuccess": "BumiAdvantage",
           "onFailure": "BumiDisadvantage"
+        }
+      ]
+    },
+    "GiftStateSuggest": {
+      "id": "GiftStateSuggest",
+      "speaker": "Vinesh",
+      "text": "You found Natalia! [Gift Unlocked] Trip for two to anywhere in California (doggy sitter included).",
+      "video": "/video/vinesh-offering.mp4",
+      "choices": [
+        {
+          "kind": "simple",
+          "label": "Accept",
+          "next": "Suggestion"
+        }
+      ]
+    },
+    "GiftStateBack": {
+      "id": "GiftStateBack",
+      "speaker": "Vinesh",
+      "text": "You found Natalia! [Gift Unlocked] Trip for two to anywhere in California (doggy sitter included).",
+      "video": "/video/vinesh-offering.mp4",
+      "choices": [
+        {
+          "kind": "simple",
+          "label": "Accept",
+          "next": "Intro"
+        }
+      ]
+    },
+    "GiftStayBumi": {
+      "id": "GiftStayBumi",
+      "speaker": "Vinesh",
+      "text": "You found Bumi! [Gift Unlocked] Staycation for two (Bumi included).",
+      "video": "/video/vinesh-offering.mp4",
+      "choices": [
+        {
+          "kind": "simple",
+          "label": "Accept",
+          "next": "End"
+        }
+      ]
+    },
+    "GiftGlobalYamo": {
+      "id": "GiftGlobalYamo",
+      "speaker": "Vinesh",
+      "text": "We've been to Yamo. Where to next? [Gift Unlocked] Trip for two to anywhere in the world (doggy sitter included).",
+      "video": "/video/vinesh-offering.mp4",
+      "choices": [
+        {
+          "kind": "simple",
+          "label": "Accept",
+          "next": "SaturdayAsk"
+        }
+      ]
+    },
+    "GiftCountryTime": {
+      "id": "GiftCountryTime",
+      "speaker": "Vinesh",
+      "text": "You made it to our first date! [Gift Unlocked] Trip for two to anywhere in the country (doggy sitter included).",
+      "video": "/video/vinesh-offering.mp4",
+      "choices": [
+        {
+          "kind": "simple",
+          "label": "Accept",
+          "next": "End"
         }
       ]
     }

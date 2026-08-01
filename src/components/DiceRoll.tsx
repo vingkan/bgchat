@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useAnimate } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import type { RollResult } from '../engine/engine';
+import { useGamepad } from '../input/useGamepad';
 
 interface Props {
   roll: RollResult | null; // non-null => overlay is up, staged and animating
@@ -109,6 +110,12 @@ export function DiceRoll({ roll, onContinue }: Props) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [roll, revealed, onContinue]);
+
+  // Gamepad: ✕/A confirms the result once revealed (mirrors Enter/Space). Back and
+  // navigation are intentionally inert during a roll.
+  useGamepad(!!roll, (btn) => {
+    if (btn === 'select' && revealed) onContinue();
+  });
 
   const mod = roll ? (roll.modifier >= 0 ? '+' : '−') + Math.abs(roll.modifier) : '';
   const critLead =

@@ -129,6 +129,47 @@ describe('DialoguePlayer', () => {
     expect(await screen.findByText(/Honesty buys you a step/i)).toBeInTheDocument();
   });
 
+  it('arrow keys move a cursor over the options; Enter selects the focused one', async () => {
+    const user = setup();
+    await begin(user);
+    // First directional input reveals the cursor on the first option.
+    await user.keyboard('{ArrowDown}');
+    const truth = screen.getByText(/Tell him the truth/i).closest('.choice');
+    expect(document.activeElement).toBe(truth);
+    // Enter activates the focused option natively (no double-fire with the global handler).
+    await user.keyboard('{Enter}');
+    expect(await screen.findByText(/Honesty buys you a step/i)).toBeInTheDocument();
+  });
+
+  it('ArrowDown past the last option drops into the control row; Left/Right cross it, Up returns', async () => {
+    const user = setup(); // no storageKey => row is Back / Restart / Mute / Home
+    await begin(user);
+    // Reveal, then walk down through all four options into the row.
+    for (let i = 0; i < 5; i++) await user.keyboard('{ArrowDown}');
+    // Back is disabled on the first node, so the cursor lands on Restart.
+    const restart = screen.getByRole('button', { name: /restart/i });
+    expect(document.activeElement).toBe(restart);
+    await user.keyboard('{ArrowRight}');
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /unmute/i }));
+    // Up from the row returns to the last option.
+    await user.keyboard('{ArrowUp}');
+    const leave = screen.getByText(/Say nothing and turn to leave/i).closest('.choice');
+    expect(document.activeElement).toBe(leave);
+  });
+
+  it('Backspace triggers Back after a step, and is a no-op on the first node', async () => {
+    const user = setup();
+    await begin(user);
+    // First node: history is empty, Back is disabled, so Backspace does nothing.
+    await user.keyboard('{Backspace}');
+    expect(screen.getByText(/State your business/i)).toBeInTheDocument();
+    // Advance a step, then Backspace walks it back.
+    await user.click(screen.getByText(/Tell him the truth/i));
+    await screen.findByText(/Honesty buys you a step/i);
+    await user.keyboard('{Backspace}');
+    expect(await screen.findByText(/State your business/i)).toBeInTheDocument();
+  });
+
   it('runs a skill check: overlay -> Continue routes to a branch', async () => {
     const user = setup();
     await begin(user);

@@ -23,6 +23,7 @@ const TAG_LABEL: Record<Exclude<ChoiceTag, 'none'>, string> = {
 export function ChoiceButton({ choice, index, tag, onSelect }: Props) {
   return (
     <li
+      data-nav
       className="choice"
       role="button"
       tabIndex={0}

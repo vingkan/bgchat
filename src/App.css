@@ -205,17 +205,23 @@
   background: var(--accent);
   transition: width 260ms ease;
 }
+/* Plain :focus (not just :focus-visible) so a gamepad-driven .focus() shows the
+   cursor too — a pad press isn't a "keyboard" interaction, so :focus-visible alone
+   would leave the D-pad cursor invisible. */
 .choice:hover,
-.choice:focus-visible {
+.choice:focus-visible,
+.choice:focus {
   color: var(--white);
   outline: none;
 }
 .choice:hover .num,
-.choice:focus-visible .num {
+.choice:focus-visible .num,
+.choice:focus .num {
   color: var(--accent);
 }
 .choice:hover .label::after,
-.choice:focus-visible .label::after {
+.choice:focus-visible .label::after,
+.choice:focus .label::after {
   width: 100%;
 }
 
@@ -288,7 +294,8 @@
   transition: color 180ms ease;
 }
 .ctrl:hover:not(:disabled),
-.ctrl:focus-visible {
+.ctrl:focus-visible,
+.ctrl:focus:not(:disabled) {
   color: var(--accent);
   outline: none;
 }
@@ -352,7 +359,8 @@
   align-self: center;
 }
 .continue:hover,
-.continue:focus-visible {
+.continue:focus-visible,
+.continue:focus {
   border-color: var(--accent);
   color: var(--accent);
   outline: none;
