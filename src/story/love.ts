@@ -690,7 +690,7 @@ export const loveStory: StoryFile = {
     "End": {
       "id": "End",
       "speaker": "Vinesh",
-      "text": "And that is the story of how we set up our first date. Happy anniversary, Kishahnica. I love you in every timeline.",
+      "text": "And that is the story of how we set up our first date. Happy anniversary, Kishahnica. I love you, in every timeline.",
       "video": "/video/vinesh-waving.mp4",
       "choices": []
     },
