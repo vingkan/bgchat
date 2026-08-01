@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CheckChoice, SimpleChoice } from '../story/types';
+import type { CheckChoice, SimpleChoice, StoryFile } from '../story/types';
 import type { GameState } from '../engine/engine';
 import { sampleStory } from '../story/sample';
 import { rollD20 } from '../engine/rng';
@@ -82,6 +82,55 @@ describe('gameReducer', () => {
     expect(reset.game.visited).toEqual(['gate']); // seen memory cleared
     expect(reset.game.history).toEqual([]);
     expect(reset.pending).toBeNull();
+  });
+});
+
+describe('RESOLVE_CHECK modifier source', () => {
+  // A one-node story whose only choice is a Stealth check, plus a story-level table.
+  const storyWith = (opts: { tableMod?: number; checkMod?: number }): StoryFile => ({
+    start: 'n',
+    nodes: {
+      n: {
+        id: 'n',
+        speaker: 'A',
+        text: 't',
+        video: '',
+        choices: [
+          {
+            kind: 'check',
+            label: 'sneak',
+            skill: 'Stealth',
+            dc: 10,
+            ...(opts.checkMod !== undefined ? { modifier: opts.checkMod } : {}),
+            onSuccess: 'n',
+            onFailure: 'n',
+          },
+        ],
+      },
+    },
+    ...(opts.tableMod !== undefined ? { skillModifiers: { Stealth: opts.tableMod } } : {}),
+  });
+
+  const rollFrom = (file: StoryFile) => {
+    const choice = file.nodes.n.choices[0] as CheckChoice;
+    const s = reduce(file, initPlayer(file, 1), { type: 'RESOLVE_CHECK', choice, index: 0 });
+    return s.pending!.roll;
+  };
+
+  it('reads the modifier from skillModifiers when present (even if the check has none)', () => {
+    const roll = rollFrom(storyWith({ tableMod: 4 }));
+    expect(roll.modifier).toBe(4);
+    expect(roll.total).toBe(roll.die + 4);
+  });
+
+  it('lets the table override a baked per-check modifier (single source of truth)', () => {
+    const roll = rollFrom(storyWith({ tableMod: 4, checkMod: 1 }));
+    expect(roll.modifier).toBe(4);
+  });
+
+  it('falls back to the baked modifier when the table is absent', () => {
+    const roll = rollFrom(storyWith({ checkMod: 2 }));
+    expect(roll.modifier).toBe(2);
   });
 });
 

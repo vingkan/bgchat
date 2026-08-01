@@ -9,6 +9,7 @@
 // a clean StoryFile ready to paste into src/story/.
 
 import type { Choice, DialogueNode, NodeId, StoryFile } from '../story/types';
+import { forceLayout, specFromStoryFile } from './layout';
 
 // ─── Abilities & skills ──────────────────────────────────────────────────────
 // Only the five abilities that own skills (no Constitution — nothing checks it).
@@ -167,6 +168,7 @@ export type Action =
   | { type: 'setCheck'; id: NodeId; index: number; on: boolean }
   | { type: 'connect'; id: NodeId; index: number; handle: Handle; target: NodeId }
   | { type: 'setSkillMod'; skill: string; mod: number }
+  | { type: 'relayout'; positions: Record<NodeId, { x: number; y: number }> }
   | { type: 'load'; state: EditorState };
 
 export function reducer(state: EditorState, action: EditorState | Action): EditorState {
@@ -333,6 +335,15 @@ export function reducer(state: EditorState, action: EditorState | Action): Edito
     case 'setSkillMod':
       return { ...state, skillMods: { ...state.skillMods, [a.skill]: a.mod } };
 
+    case 'relayout': {
+      const nodes: Record<NodeId, EditorNode> = {};
+      for (const [id, n] of Object.entries(state.nodes)) {
+        const p = a.positions[id];
+        nodes[id] = p ? { ...n, x: p.x, y: p.y } : n;
+      }
+      return { ...state, nodes };
+    }
+
     default:
       return state;
   }
@@ -389,18 +400,24 @@ export function toStoryFile(state: EditorState): StoryFile {
       }),
     };
   }
-  return { start: state.start ?? state.order[0] ?? '', nodes };
+  // Emit the full modifier table (non-zero entries only — zero is the default) so
+  // a skill's modifier survives export/import even when no node currently checks it.
+  const skillModifiers: Record<string, number> = {};
+  for (const [skill, mod] of Object.entries(state.skillMods)) {
+    if (mod !== 0) skillModifiers[skill] = mod;
+  }
+  const file: StoryFile = { start: state.start ?? state.order[0] ?? '', nodes };
+  if (Object.keys(skillModifiers).length > 0) file.skillModifiers = skillModifiers;
+  return file;
 }
 
-// Build EditorState from a StoryFile, laying nodes out in columns by BFS depth
-// from start (imported JSON has no positions). Modifiers on checks seed the
-// ability table (last one wins per ability).
+// Build EditorState from a StoryFile. Imported JSON has no positions, so nodes are
+// laid out with the directed force layout (left→right by story depth). Skill
+// modifiers are seeded from the story-level `skillModifiers` table when present,
+// falling back to a scan of each check's baked `modifier` for older files.
 export function fromStoryFile(file: StoryFile): EditorState {
   const ids = Object.keys(file.nodes);
-  const depth = bfsDepths(file);
-  const perColumn: Record<number, number> = {};
-  const COL_W = 320;
-  const ROW_H = 200;
+  const positions = forceLayout(specFromStoryFile(file));
 
   const nodes: Record<NodeId, EditorNode> = {};
   const order: NodeId[] = [];
@@ -408,43 +425,24 @@ export function fromStoryFile(file: StoryFile): EditorState {
 
   for (const id of ids) {
     const src = file.nodes[id];
-    const d = depth[id] ?? 0;
-    const row = perColumn[d] ?? 0;
-    perColumn[d] = row + 1;
-    nodes[id] = { ...src, x: 60 + d * COL_W, y: 60 + row * ROW_H };
+    const p = positions[id] ?? { x: 60, y: 60 };
+    nodes[id] = { ...src, x: p.x, y: p.y };
     order.push(id);
+    // Back-compat: recover modifiers from checks for files without the table.
     for (const c of src.choices) {
       if (c.kind === 'check' && typeof c.modifier === 'number') {
         skillMods[c.skill] = c.modifier;
       }
     }
   }
-
-  return { start: file.start || ids[0] || null, nodes, order, skillMods, lastSpeaker: '', selectedId: null };
-}
-
-function bfsDepths(file: StoryFile): Record<NodeId, number> {
-  const depth: Record<NodeId, number> = {};
-  const queue: NodeId[] = [];
-  if (file.start && file.nodes[file.start]) {
-    depth[file.start] = 0;
-    queue.push(file.start);
-  }
-  while (queue.length) {
-    const id = queue.shift() as NodeId;
-    const node = file.nodes[id];
-    if (!node) continue;
-    for (const c of node.choices) {
-      const targets = c.kind === 'check' ? [c.onSuccess, c.onFailure] : [c.next];
-      for (const t of targets) {
-        if (t && file.nodes[t] && depth[t] === undefined) {
-          depth[t] = depth[id] + 1;
-          queue.push(t);
-        }
-      }
+  // The explicit table wins when present (survives even for unused skills).
+  if (file.skillModifiers) {
+    for (const [skill, mod] of Object.entries(file.skillModifiers)) {
+      skillMods[skill] = mod;
     }
   }
-  return depth;
+
+  return { start: file.start || ids[0] || null, nodes, order, skillMods, lastSpeaker: '', selectedId: null };
 }
 
 // ─── sessionStorage persistence ──────────────────────────────────────────────

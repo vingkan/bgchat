@@ -139,6 +139,14 @@ describe('resolveCheck', () => {
     expect(roll.total).toBe(10);
   });
 
+  it('uses an explicit modifier override instead of the check\'s baked modifier', () => {
+    const g = { ...createGame(sampleStory), rngState: seedForDie(10) };
+    const { roll } = resolveCheck(g, check({ modifier: 0, dc: 15 }), 0, 5);
+    expect(roll.modifier).toBe(5); // override, not the check's 0
+    expect(roll.total).toBe(15); // 10 + 5
+    expect(roll.success).toBe(true);
+  });
+
   it('advances the rng state EXACTLY once', () => {
     const g = { ...createGame(sampleStory), rngState: 4242 };
     const { state } = resolveCheck(g, check(), 0);

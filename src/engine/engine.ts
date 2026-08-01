@@ -90,9 +90,13 @@ export function resolveCheck(
   state: GameState,
   choice: CheckChoice,
   index: number,
+  // Modifier to add to the roll. The caller (reducer) resolves this from the
+  // story-level skill table when present; omitted callers fall back to the
+  // modifier baked onto the check itself.
+  modifierOverride?: number,
 ): { state: GameState; roll: RollResult } {
   const { die, next } = rollD20(state.rngState);
-  const modifier = choice.modifier ?? 0;
+  const modifier = modifierOverride ?? choice.modifier ?? 0;
   const total = die + modifier;
 
   // Crit precedence: nat 20 forces success, nat 1 forces failure, else total >= dc.

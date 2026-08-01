@@ -12,6 +12,8 @@ import {
   type EditorState,
   type Handle,
 } from './model';
+import { estimateSize, forceLayout, type LayoutSpec, type NodeSize } from './layout';
+import { choiceTargets, type NodeId } from '../story/types';
 import './editor.css';
 
 interface Viewport {
@@ -254,6 +256,57 @@ export function EditorPage() {
     dispatch({ type: 'addNode', x: Math.round(w.x - 130 + off), y: Math.round(w.y - 70 + off) });
   };
 
+  // Re-run the directed force layout over the current graph, measuring each card's
+  // real rendered size, then recenter the viewport to fit the result.
+  const reformat = useCallback(() => {
+    const s = stateRef.current;
+    if (s.order.length === 0) return;
+    const scale = vpRef.current.scale;
+    const sizes: Record<NodeId, NodeSize> = {};
+    const edges: [NodeId, NodeId][] = [];
+    for (const id of s.order) {
+      const node = s.nodes[id];
+      if (!node) continue;
+      const box = canvasRef.current?.querySelector(`[data-node-box="${id}"]`);
+      const r = box?.getBoundingClientRect();
+      sizes[id] = r ? { w: r.width / scale, h: r.height / scale } : estimateSize(node);
+      for (const t of node.choices.flatMap(choiceTargets)) {
+        if (t && s.nodes[t]) edges.push([id, t]);
+      }
+    }
+    const spec: LayoutSpec = { ids: s.order, start: s.start, edges, sizes };
+    const positions = forceLayout(spec);
+    dispatch({ type: 'relayout', positions });
+
+    // Fit the laid-out graph into the canvas (never zooming in past 100%).
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const id of s.order) {
+      const p = positions[id];
+      const sz = sizes[id];
+      if (!p || !sz) continue;
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x + sz.w);
+      maxY = Math.max(maxY, p.y + sz.h);
+    }
+    const pad = 80;
+    const fit = Math.min((rect.width - 2 * pad) / (maxX - minX), (rect.height - 2 * pad) / (maxY - minY));
+    const newScale = Math.min(1, Math.max(0.25, fit));
+    const contentW = (maxX - minX) * newScale;
+    const contentH = (maxY - minY) * newScale;
+    setVp({
+      scale: newScale,
+      x: (rect.width - contentW) / 2 - minX * newScale,
+      y: (rect.height - contentH) / 2 - minY * newScale,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const startFresh = () => {
     dispatch({ type: 'load', state: initialState() });
     clearSession();
@@ -270,6 +323,9 @@ export function EditorPage() {
         </button>
         <button onClick={() => setModal('import')}>Import</button>
         <button onClick={() => setModal('export')}>Export</button>
+        <button onClick={reformat} disabled={state.order.length === 0}>
+          Reformat
+        </button>
         <span className="ed-spacer" />
         <span className={`ed-save ${save}`}>{save === 'saving' ? '● Saving…' : '● Saved'}</span>
       </header>

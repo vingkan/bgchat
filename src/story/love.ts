@@ -776,5 +776,19 @@ export const loveStory: StoryFile = {
         }
       ]
     }
+  },
+  "skillModifiers": {
+    "Athletics": -3,
+    "Acrobatics": -2,
+    "Sleight of Hand": 9,
+    "Stealth": 2,
+    "Arcana": 5,
+    "History": 4,
+    "Animal Handling": 10,
+    "Insight": 3,
+    "Survival": 3,
+    "Deception": -1,
+    "Intimidation": 2,
+    "Performance": 2
   }
 };

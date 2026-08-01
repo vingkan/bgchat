@@ -49,6 +49,12 @@ export interface CheckChoice {
 export interface StoryFile {
   start: NodeId;
   nodes: Record<NodeId, DialogueNode>;
+  // Per-skill modifier table (e.g. { Stealth: 5, Persuasion: 2 }). Optional for
+  // back-compat with older story files. When present, the engine reads a check's
+  // modifier from here by its `skill`, so the same skill is consistent everywhere
+  // and a modifier survives export/import even if no node currently checks it.
+  // Falls back to a check's own `modifier` when a skill is absent here.
+  skillModifiers?: Record<string, number>;
 }
 
 // The node id a choice leads to on its "primary" (success/next) path.

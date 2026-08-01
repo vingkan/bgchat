@@ -50,7 +50,10 @@ export function reduce(file: StoryFile, state: PlayerState, action: Action): Pla
 
     case 'RESOLVE_CHECK': {
       if (state.pending) return state; // double-click guard: one roll at a time
-      const { state: nextGame, roll } = resolveCheck(state.game, action.choice, action.index);
+      // Prefer the story-level skill table (single source of truth); fall back to
+      // the modifier baked onto the check for stories without the table.
+      const modifier = file.skillModifiers?.[action.choice.skill] ?? action.choice.modifier ?? 0;
+      const { state: nextGame, roll } = resolveCheck(state.game, action.choice, action.index, modifier);
       return { game: state.game, pending: { roll, nextGame } };
     }
 
