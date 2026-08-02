@@ -79,3 +79,27 @@ describe('readNavPresses', () => {
     expect(readNavPresses([null, null], {}).presses).toEqual([]);
   });
 });
+
+describe('readNavPresses priming (held button at listen-start)', () => {
+  // Regression: a button already held when a hook mounts must NOT read as a press.
+  // This is the Restart-via-✕ bug — holding select on Restart mounts the opening card,
+  // whose fresh gamepad loop would otherwise fire select immediately and skip Begin.
+  it('emits nothing on the first frame (prev = null), only records the baseline', () => {
+    const primed = readNavPresses([pad([0])], null); // ✕ already held at mount
+    expect(primed.presses).toEqual([]);
+    expect(primed.pressed.select).toBe(true);
+  });
+
+  it('still emits nothing while the same button stays held after priming', () => {
+    const primed = readNavPresses([pad([0])], null);
+    expect(readNavPresses([pad([0])], primed.pressed).presses).toEqual([]);
+  });
+
+  it('emits a press once the held button is released and pressed again', () => {
+    const primed = readNavPresses([pad([0])], null); // held at mount -> baseline
+    const released = readNavPresses([pad([])], primed.pressed); // let go
+    expect(released.presses).toEqual([]);
+    const again = readNavPresses([pad([0])], released.pressed); // fresh press -> edge
+    expect(again.presses).toEqual(['select']);
+  });
+});

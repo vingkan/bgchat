@@ -18,7 +18,9 @@ export function useGamepad(enabled: boolean, onPress: (button: NavButton) => voi
     const getPads = () => navigator.getGamepads() ?? [];
 
     let raf = 0;
-    let prev: PressedState = {};
+    // null = not yet primed: the first loop adopts the current held state as its baseline
+    // so a button already down when we start listening isn't read as a fresh press.
+    let prev: PressedState | null = null;
 
     const loop = () => {
       const { presses, pressed } = readNavPresses(getPads(), prev);
@@ -32,7 +34,7 @@ export function useGamepad(enabled: boolean, onPress: (button: NavButton) => voi
     const stop = () => {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
-      prev = {};
+      prev = null; // re-prime on the next start (reconnect / re-enable)
     };
     // Only run the loop while at least one pad is present, to spare the battery.
     const onDisconnect = () => {

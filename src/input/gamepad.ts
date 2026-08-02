@@ -40,9 +40,16 @@ const ALL: readonly NavButton[] = ['up', 'down', 'left', 'right', 'select', 'bac
 // Read the current frame's pressed set from every connected pad, then edge-detect
 // against `prev` so each physical press fires exactly once (holding does not repeat
 // — the natural feel for a menu). Returns the new pressed set to feed back next frame.
+//
+// `prev === null` means we just started listening (mount / reconnect): adopt whatever
+// is currently held as the baseline and emit NOTHING, so a button already down when we
+// begin isn't mistaken for a new press. Without this, a button still held across a
+// component swap double-fires — e.g. holding ✕ on Restart carries into the freshly
+// mounted opening card and auto-triggers its Begin. A held button becomes a press only
+// after it's released and pressed again.
 export function readNavPresses(
   pads: readonly (Gamepad | null)[],
-  prev: PressedState,
+  prev: PressedState | null,
 ): { presses: NavButton[]; pressed: PressedState } {
   const pressed: PressedState = {};
 
@@ -61,6 +68,9 @@ export function readNavPresses(
     if (x <= -AXIS_DEADZONE) pressed.left = true;
     if (x >= AXIS_DEADZONE) pressed.right = true;
   }
+
+  // First frame after (re)starting the loop: baseline only, no presses (see above).
+  if (prev === null) return { presses: [], pressed };
 
   const presses: NavButton[] = [];
   for (const nav of ALL) {
